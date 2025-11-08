@@ -150,11 +150,11 @@ La base de datos incluye tablas como:
 
 | Integrante | Rol principal |
 |-------------|---------------|
-| Iris Yadira Santiago | Desarrollo y pruebas de inventario |
-| Danna Michell Robles | Diseño de interfaz gráfica |
-| Lucía Medina | Base de datos y documentación técnica |
-| Cindy Alejandra Reyes | Análisis y validación de requerimientos |
-| Owen Asaf Benítez | Arquitectura y control de versiones |
+| Iris Yadira Santiago | Backend  |
+| Danna Michell Robles | Frontend |
+| Lucía Medina | Frontend |
+| Cindy Alejandra Reyes | Backend |
+| Owen Asaf Benítez | Frontend |
 
 ---
 
