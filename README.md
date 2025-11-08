@@ -1,7 +1,7 @@
-# Sistema-de-Gesti-n-para-Tienda-Local-
+# 
 
 
-#  Sistema de Gestión para Tienda Local
+#  Sistema de Gestión para Tienda Local (boutique)
 
 **Proyecto Integrador I – Universidad Tecnológica de Durango**
 
