@@ -8,8 +8,9 @@ from views.inventario import InventarioView
 from views.apartado import ApartadoView
 from views.ventas_view import VentasView
 from views.sales_history import SalesHistoryView
-from views.users_view import UsersWindow as UsuariosView
+from views.users_view import UsersView as UsuariosView
 from views.categorias import CategoriasView
+from views.creditos_view import CreditosView
 
 class MainApp(tk.Tk):
     def __init__(self, user):
@@ -38,15 +39,18 @@ class MainApp(tk.Tk):
     def create_menu(self):
 
         menu_items = [
-            ("Dashboard", DashboardView),
-            ("Punto de Venta", VentasView),
-            ("Ventas", SalesHistoryView),
-            ("Apartado", ApartadoView),
-            ("Productos", ProductsView),
-            ("Inventario", InventarioView),
-            ("Usuarios", UsuariosView),
-            ("Categorías", CategoriasView),
+            ("📊 Dashboard", DashboardView),
+            ("🧾 Punto de Venta", VentasView),
+            ("🧮 Ventas", SalesHistoryView),
+            ("📎 Apartado", ApartadoView),
+            ("📦 Productos", ProductsView),
+            ("🏷️ Inventario", InventarioView),
+            ("💳 Créditos", CreditosView),
         ]
+
+        # --- Lógica de Acceso para Administrador ---
+        if self.user.get("rol") == "Administrador":
+            menu_items.insert(6, ("👤 Usuarios", UsuariosView))
 
         for text, view in menu_items:
             btn = ttk.Button(
@@ -84,6 +88,13 @@ class MainApp(tk.Tk):
         style.map("Treeview",
               background=[('selected', '#F9D7DD')],
               foreground=[('selected', '#000000')])
+        style.configure("Primary.TButton", font=("Segoe UI", 11, "bold"), foreground="#FFFFFF", background="#E48CA6", padding=10)
+        style.map("Primary.TButton", background=[["active", "#D97393"]])
+        style.configure("Chip.TButton", foreground="#B2334A", background="#F9D7DD", padding=6)
+        style.map("Chip.TButton", background=[["active", "#F3C3CC"]])
+        style.configure("ChipSelected.TButton", foreground="#FFFFFF", background="#B2334A", padding=6)
+        style.map("ChipSelected.TButton", background=[["active", "#99233D"]])
+        style.configure("Pay.TRadiobutton", background="#FFFFFF")
 
     def create_brand(self):
         top = ttk.Frame(self.sidebar)

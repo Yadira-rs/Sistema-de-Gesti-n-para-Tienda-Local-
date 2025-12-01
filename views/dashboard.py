@@ -1,49 +1,59 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk
+import tkinter as tk
 from controllers.products import productos_count, stock_total_sum, stock_bajo_list
 from controllers.ventas import ventas_hoy_total, resumen_ventas, listar_ultimas_ventas, ingresos_mes_total, ventas_diarias
 
-class DashboardView(ttk.Frame):
+class DashboardView(ctk.CTkFrame):
     def __init__(self, parent, user=None):
         super().__init__(parent)
-        ttk.Label(self, text="Dashboard", font=("Segoe UI", 18, "bold")).pack(pady=8, anchor="w")
-        cards = ttk.Frame(self); cards.pack(fill="x", padx=8)
-        v_hoy = ventas_hoy_total(); res = resumen_ventas()
-        ttk.Label(cards, text=f"Ventas Hoy\n${v_hoy:.2f}", padding=12).pack(side="left", padx=8)
-        ttk.Label(cards, text=f"Ingreso Mes\n${ingresos_mes_total():.2f}", padding=12).pack(side="left", padx=8)
-        ttk.Label(cards, text=f"Total Ventas\n{res['total_ventas']}", padding=12).pack(side="left", padx=8)
-        ttk.Label(cards, text=f"Productos\n{productos_count()}", padding=12).pack(side="left", padx=8)
-        ttk.Label(cards, text=f"Stock Total\n{stock_total_sum()}", padding=12).pack(side="left", padx=8)
+        self.pack(fill="both", expand=True)
 
-        content = ttk.Frame(self); content.pack(fill="both", expand=True, padx=8, pady=8)
-        left = ttk.Frame(content); right = ttk.Frame(content)
-        left.pack(side="left", fill="both", expand=True)
-        right.pack(side="right", fill="both", expand=True)
+        # --- Cargar datos de los controladores ---
+        resumen = resumen_ventas()
+        stock_bajo = stock_bajo_list(5) # Limitar a 5 para no saturar
+        ultimas_ventas = listar_ultimas_ventas(5)
+        v_hoy = ventas_hoy_total()
+        p_count = productos_count()
+        s_sum = stock_total_sum()
 
-        ttk.Label(left, text="Productos con Stock Bajo", font=("Segoe UI", 13, "bold")).pack(anchor="w")
-        low = stock_bajo_list(10)
-        for p in low:
-            ttk.Label(left, text=f"{p['nombre']}  {p['stock']} unidades  ${float(p['precio']):.2f}", padding=6).pack(fill="x")
+        # --- Área principal ---
+        main = ctk.CTkFrame(self, fg_color="transparent")
+        main.pack(fill="both", expand=True, padx=10, pady=10)
 
-        ttk.Label(right, text="Últimas Ventas", font=("Segoe UI", 13, "bold")).pack(anchor="w")
-        tabla = ttk.Treeview(right, columns=("ticket","fecha","total"), show="headings", height=8)
-        for c,t in (("ticket","Ticket"),("fecha","Fecha"),("total","Total")):
-            tabla.heading(c, text=t)
-        tabla.pack(fill="both", expand=True)
-        for v in listar_ultimas_ventas(5):
-            tabla.insert("", tk.END, values=(v["id_venta"], str(v["fecha"]), f"${float(v['total']):.2f}"))
+        ctk.CTkLabel(main, text="Bienvenido al sistema de punto de venta", font=("Segoe UI", 18, "bold")).pack(pady=10, anchor="w")
 
-        ttk.Label(self, text="Ventas diarias", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=8)
-        canvas = tk.Canvas(self, height=160, bg="#FFFFFF")
-        canvas.pack(fill="x", padx=8, pady=8)
-        data = ventas_diarias(7)
-        if data:
-            max_total = max(float(d["total"]) for d in data) or 1
-            bar_width = 40
-            spacing = 20
-            x = 20
-            for d in data:
-                h = int((float(d["total"]) / max_total) * 120)
-                canvas.create_rectangle(x, 140-h, x+bar_width, 140, fill="#F9D7DD", outline="")
-                canvas.create_text(x+bar_width/2, 150, text=str(d["dia"]), angle=45, font=("Segoe UI", 8))
-                x += bar_width + spacing
+        # Tarjetas resumen
+        resumen_frame = ctk.CTkFrame(main)
+        resumen_frame.pack(fill="x", pady=10)
+
+        resumen_data = [
+            f"Ventas Hoy\n${v_hoy:.2f}",
+            f"Total Ventas\n{resumen.get('total_ventas', 0)}",
+            f"Productos\n{p_count}",
+            f"Stock Total\n{s_sum}"
+        ]
+
+        for txt in resumen_data:
+            ctk.CTkLabel(resumen_frame, text=txt, corner_radius=10,
+                         fg_color="#E3A8C5", text_color="black",
+                         font=("Segoe UI", 14, "bold"),
+                         padx=20, pady=12).pack(side="left", padx=8, expand=True, fill="x")
+
+        # Stock Bajo
+        ctk.CTkLabel(main, text="Productos con Stock Bajo", font=("Segoe UI", 15, "bold")).pack(anchor="w", pady=(20, 5))
+        stock_frame = ctk.CTkFrame(main, fg_color="transparent")
+        stock_frame.pack(fill="x")
+        for p in stock_bajo:
+            txt = f"{p.get('nombre', '?')} : {p.get('stock', 0)} unidades - ${float(p.get('precio', 0)):.2f}"
+            ctk.CTkLabel(stock_frame, text=txt, fg_color="#5E4B56", corner_radius=8,
+                         padx=6, pady=4).pack(fill="x", pady=3)
+
+        # Últimas Ventas
+        ctk.CTkLabel(main, text="Últimas Ventas", font=("Segoe UI", 15, "bold")).pack(anchor="w", pady=(20, 5))
+        ventas_frame = ctk.CTkFrame(main, fg_color="transparent")
+        ventas_frame.pack(fill="x")
+        for v in ultimas_ventas:
+            fecha_str = str(v.get('fecha', ''))
+            txt = f"Venta #{v.get('id_venta', '?')}: {fecha_str} - ${float(v.get('total', 0)):.2f}"
+            ctk.CTkLabel(ventas_frame, text=txt).pack(anchor="w", padx=10)

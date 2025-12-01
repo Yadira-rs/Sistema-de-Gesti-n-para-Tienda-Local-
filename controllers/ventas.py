@@ -7,13 +7,26 @@ def buscar_producto(codigo):
     conn = crear_conexion()
     cur = conn.cursor(dictionary=True)
     producto = None
+    # Buscar por código único si existe la columna
+    try:
+        cur.execute("SELECT * FROM productos WHERE codigo=%s LIMIT 1", (str(codigo),))
+        producto = cur.fetchone()
+        if producto:
+            conn.close(); return producto
+    except Exception:
+        pass
+    # Buscar por ID numérico
     try:
         pid = int(codigo)
         cur.execute("SELECT * FROM productos WHERE id_producto=%s LIMIT 1", (pid,))
         producto = cur.fetchone()
+        if producto:
+            conn.close(); return producto
     except Exception:
-        cur.execute("SELECT * FROM productos WHERE nombre LIKE %s LIMIT 1", (f"%{codigo}%",))
-        producto = cur.fetchone()
+        pass
+    # Buscar por nombre
+    cur.execute("SELECT * FROM productos WHERE nombre LIKE %s LIMIT 1", (f"%{codigo}%",))
+    producto = cur.fetchone()
     conn.close()
     return producto
 

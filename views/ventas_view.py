@@ -4,6 +4,7 @@ from datetime import datetime
 from PIL import Image, ImageTk, ImageDraw, ImageFont
 import webbrowser, tempfile
 from pathlib import Path
+import platform
 import configparser
 import os
 from controllers.ventas import (
@@ -14,7 +15,7 @@ from controllers.ventas import (
     set_cantidad,
     eliminar_item,
 )
-from controllers.products import obtener_productos
+from controllers.products import obtener_productos, obtener_categorias, obtener_productos_por_categoria, buscar_productos, obtener_productos_favoritos, obtener_productos_stock_bajo, crear_categoria
 
 
 class VentasView(ttk.Frame):
@@ -22,9 +23,16 @@ class VentasView(ttk.Frame):
         super().__init__(parent)
         self.user = user
         self.metodo = tk.StringVar(value="Efectivo")
+        self.quick_filter = None
         self.build_ui()
 
     def build_ui(self):
+        style = ttk.Style()
+        style.configure("Chip.TButton", background="#F9D7DD", foreground="#B2334A", padding=6)
+        style.map("Chip.TButton", background=[["active", "#F3C3CC"]])
+        style.configure("Primary.TButton", background="#E48CA6", foreground="#FFFFFF", padding=8)
+        style.map("Primary.TButton", background=[["active", "#D97393"]])
+        style.configure("Pay.TRadiobutton", background="#FFFFFF")
         header = ttk.Label(self, text="Punto de Venta", font=("Segoe UI", 16, "bold"))
         header.pack(pady=8)
 
@@ -38,13 +46,22 @@ class VentasView(ttk.Frame):
 
         top_search = ttk.Frame(left)
         top_search.pack(fill="x")
-        ttk.Label(top_search, text="Buscar productos por Nombre, Código o Categoría...").pack(anchor="w")
+        ttk.Label(top_search, text="Buscar por nombre o código").pack(anchor="w")
 
         self.entry_codigo = ttk.Entry(top_search)
         self.entry_codigo.pack(fill="x", pady=6)
         self.entry_codigo.bind("<Return>", self.agregar_por_codigo)
+        self.entry_codigo.bind("<KP_Enter>", self.agregar_por_codigo)
+        try:
+            self.bind_all("<KP_Enter>", lambda e: None)
+            self.bind_all("<Return>", lambda e: None)
+        except Exception:
+            pass
+        self.entry_codigo.focus_set()
+        self.after(100, lambda: self.entry_codigo.focus_set())
+        self._placeholder(self.entry_codigo, "Buscar productos...")
 
-        ttk.Button(top_search, text="Agregar", command=self.agregar_por_codigo).pack(anchor="e")
+        ttk.Button(top_search, text="Agregar", style="Primary.TButton", command=self.agregar_por_codigo).pack(anchor="e")
 
         # Grid de productos a la izquierda
         self.grid = ttk.Frame(left)
@@ -62,12 +79,12 @@ class VentasView(ttk.Frame):
         pagos = ttk.Frame(right)
         pagos.pack(fill="x")
         for m in ("Efectivo", "Tarjeta", "Transferencia"):
-            ttk.Radiobutton(pagos, text=m, variable=self.metodo, value=m).pack(side="left", padx=4)
+            ttk.Radiobutton(pagos, text=m, variable=self.metodo, value=m, style="Pay.TRadiobutton").pack(side="left", padx=4)
 
         self.lbl_total = ttk.Label(right, text="Total: $0.00", font=("Segoe UI", 14, "bold"))
         self.lbl_total.pack(pady=10)
 
-        ttk.Button(right, text="Procesar Venta", command=self.finalizar).pack(fill="x")
+        ttk.Button(right, text="Procesar Venta", style="Primary.TButton", command=self.finalizar).pack(fill="x")
 
     def agregar_por_codigo(self, event=None):
         codigo = self.entry_codigo.get().strip()
@@ -83,6 +100,10 @@ class VentasView(ttk.Frame):
             self.actualizar_tabla()
 
         self.entry_codigo.delete(0, tk.END)
+        try:
+            self.entry_codigo.focus_set()
+        except Exception:
+            pass
 
     def actualizar_tabla(self):
         for w in self.cart_items_container.winfo_children():
@@ -107,13 +128,54 @@ class VentasView(ttk.Frame):
     def cargar_grid(self):
         for w in self.grid.winfo_children():
             w.destroy()
-        productos = obtener_productos()
+        if self.quick_filter == 'favoritas':
+            productos = obtener_productos_favoritos()
+        elif self.quick_filter == 'stock_bajo':
+            productos = obtener_productos_stock_bajo()
+        else:
+            productos = obtener_productos()
+        q = self.entry_codigo.get().strip()
+        if q and q.lower() not in ("buscar productos por nombre, código o categoría...", "agregar"):
+            try:
+                productos = buscar_productos(q)
+            except Exception:
+                pass
         for i, p in enumerate(productos[:12]):
-            card = ttk.Frame(self.grid, padding=8)
+            card = tk.Frame(self.grid, bg="#FFFFFF", highlightbackground="#EAEAEA", highlightthickness=1, bd=0)
             card.grid(row=i//4, column=i%4, padx=8, pady=8, sticky="nsew")
-            ttk.Label(card, text=p["nombre"], font=("Segoe UI", 11, "bold")).pack()
-            ttk.Label(card, text=f"${float(p['precio']):.2f}").pack()
-            ttk.Button(card, text="Agregar", command=lambda prod=p: (agregar_al_carrito(prod, 1), self.actualizar_tabla())).pack(pady=4)
+            img_path = p.get("imagen_url")
+            if img_path:
+                try:
+                    im = Image.open(img_path).resize((120,120))
+                    ph = ImageTk.PhotoImage(im)
+                    lbl = tk.Label(card, image=ph, bg="#FFFFFF")
+                    lbl.image = ph
+                    lbl.pack()
+                except Exception:
+                    pass
+            ttk.Label(card, text=p["nombre"], font=("Segoe UI", 11, "bold"), background="#FFFFFF").pack(pady=(6,0))
+            ttk.Label(card, text=f"${float(p['precio']):.2f}", font=("Segoe UI", 12, "bold"), foreground="#B2334A", background="#FFFFFF").pack()
+            ttk.Label(card, text=f"Stock: {int(p.get('stock') or 0)}", background="#FFFFFF").pack()
+            btn = ttk.Button(card, text="Agregar", style="Primary.TButton", command=lambda prod=p: (agregar_al_carrito(prod, 1), self.actualizar_tabla()))
+            btn.pack(pady=8)
+        for c in range(4):
+            self.grid.columnconfigure(c, weight=1)
+
+    def set_quick_filter(self, kind):
+        self.quick_filter = kind
+        self.selected_cat = None
+        self.cargar_grid()
+
+    def _placeholder(self, entry, text):
+        def on_focus_in(e):
+            if entry.get() == text:
+                entry.delete(0, tk.END)
+        def on_focus_out(e):
+            if not entry.get():
+                entry.insert(0, text)
+        entry.insert(0, text)
+        entry.bind("<FocusIn>", on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
 
     def finalizar(self):
         carrito = obtener_carrito()
@@ -130,7 +192,12 @@ class VentasView(ttk.Frame):
         self.actualizar_tabla()
         self.mostrar_ticket(ticket)
         try:
-            self.guardar_pdf(ticket, auto=True)
+            p = self.guardar_pdf(ticket, auto=True)
+            if p and platform.system() == "Windows":
+                try:
+                    os.startfile(p, "print")
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -158,14 +225,18 @@ class VentasView(ttk.Frame):
         ttk.Label(meta, text=f"Fecha: {datetime.now().strftime('%d/%m/%Y, %I:%M:%S %p')}").pack(anchor="w")
         ttk.Label(meta, text=f"Método: {ticket['metodo']}").pack(anchor="w")
         sep2 = ttk.Separator(cont, orient="horizontal"); sep2.pack(fill="x", pady=8)
-        lista = ttk.Treeview(cont, columns=("nombre","cant","precio"), show="headings", height=8)
-        for c,t in (("nombre","Producto"),("cant","Cantidad"),("precio","Precio")):
-            lista.heading(c, text=t)
-        lista.pack(fill="x")
+        items_box = ttk.Frame(cont)
+        items_box.pack(fill="x")
         for item in ticket.get("items", []):
             subtotal = float(item["precio"]) * int(item["cantidad"])
-            lista.insert("", "end", values=(item["nombre"], f"x {item['cantidad']}", f"${subtotal:.2f}"))
-        ttk.Label(cont, text=f"Total: ${ticket['total']:.2f}", font=("Segoe UI", 13, "bold")).pack(pady=10)
+            row = ttk.Frame(items_box)
+            row.pack(fill="x", pady=4)
+            left = ttk.Frame(row)
+            left.pack(side="left", fill="x", expand=True)
+            ttk.Label(left, text=item["nombre"]).pack(anchor="w")
+            ttk.Label(left, text=f"{int(item['cantidad'])} x ${float(item['precio']):.2f}", foreground="#666").pack(anchor="w")
+            ttk.Label(row, text=f"${subtotal:.2f}").pack(side="right")
+        ttk.Label(cont, text=f"Total: ${ticket['total']:.2f}", font=("Segoe UI", 13, "bold"), foreground="#B2334A").pack(pady=10)
         ttk.Label(cont, text="¡Gracias por su compra!\nVuelva pronto", justify="center").pack()
         buttons = ttk.Frame(cont); buttons.pack(fill="x", pady=6)
         ttk.Button(buttons, text="Guardar PDF", command=lambda: self.guardar_pdf(ticket)).pack(side="left")
@@ -198,7 +269,7 @@ body{{font-family:Segoe UI,Arial,sans-serif;color:#000;}}
 .name{{flex:1}}
 .qty{{width:120px;text-align:left;color:#444}}
 .price{{width:80px;text-align:right}}
-.total{{text-align:right;font-weight:700;margin-top:8px}}
+.total{{text-align:right;font-weight:700;margin-top:8px;color:#B2334A}}
 .thanks{{text-align:center;margin-top:10px}}
 </style></head><body>
 <div class='wrap'>
@@ -224,7 +295,7 @@ body{{font-family:Segoe UI,Arial,sans-serif;color:#000;}}
         else:
             path = filedialog.asksaveasfilename(defaultextension=".pdf", initialfile=default_name, filetypes=[("PDF","*.pdf")])
         if not path:
-            return
+            return None
         W, H = 580, 800
         img = Image.new("RGB", (W, H), "white")
         draw = ImageDraw.Draw(img)
@@ -261,10 +332,11 @@ body{{font-family:Segoe UI,Arial,sans-serif;color:#000;}}
             y += 18
         y += 8
         draw.line((20, y, W-20, y), fill="#cccccc"); y += 10
-        draw.text((20, y), f"Total: ${ticket['total']:.2f}", fill="black", font=font)
+        draw.text((20, y), f"Total: ${ticket['total']:.2f}", fill="#B2334A", font=font)
         img.save(path, "PDF")
         if not auto:
             messagebox.showinfo("Ticket", f"PDF guardado en:\n{path}")
+        return path
 
     def obtener_config_negocio(self):
         cfg = configparser.ConfigParser()

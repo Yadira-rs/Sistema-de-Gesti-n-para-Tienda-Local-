@@ -1,92 +1,68 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-from controllers.products import agregar_producto, obtener_productos
+import customtkinter as ctk
+from tkinter import messagebox
+from controllers.products import obtener_productos, agregar_producto
+from views.nuevo_producto_form import NuevoProductoForm
 
-
-class ProductsView(ttk.Frame):
+class ProductsView(ctk.CTkFrame):
     def __init__(self, parent, user=None):
-        super().__init__(parent)
+        super().__init__(parent, fg_color="transparent")
         self.user = user
+        self.pack(fill="both", expand=True)
 
-        ttk.Label(self, text="📦 Módulo de Productos",
-                  font=("Segoe UI", 16, "bold")).pack(pady=10)
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", padx=20, pady=10)
 
-        self.crear_formulario()
-        self.crear_tabla()
-        self.cargar_productos()
+        ctk.CTkLabel(header, text="Productos", font=("Segoe UI", 18, "bold")).pack(side="left")
+        ctk.CTkButton(header, text="Nuevo Producto", command=self.abrir_formulario_nuevo).pack(side="right")
 
-    def crear_formulario(self):
-        form = ttk.Frame(self)
-        form.pack(pady=10)
+        self.tabla_frame = ctk.CTkFrame(self)
+        self.tabla_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        ttk.Label(form, text="Nombre:").grid(row=0, column=0, pady=5)
-        self.nombre = ttk.Entry(form, width=35)
-        self.nombre.grid(row=0, column=1)
+        self.cargar_tabla_productos()
 
-        ttk.Label(form, text="Descripción:").grid(row=1, column=0, pady=5)
-        self.descripcion = ttk.Entry(form, width=35)
-        self.descripcion.grid(row=1, column=1)
+    def cargar_tabla_productos(self):
+        """Carga o recarga los productos en la tabla."""
+        # Limpiar el frame de la tabla antes de volver a dibujar
+        for widget in self.tabla_frame.winfo_children():
+            widget.destroy()
 
-        ttk.Label(form, text="Precio:").grid(row=2, column=0, pady=5)
-        self.precio = ttk.Entry(form, width=35)
-        self.precio.grid(row=2, column=1)
-
-        ttk.Label(form, text="Stock:").grid(row=3, column=0, pady=5)
-        self.stock = ttk.Entry(form, width=35)
-        self.stock.grid(row=3, column=1)
-
-        ttk.Button(form, text="💾 Guardar Producto",
-                   command=self.guardar_producto).grid(row=4, columnspan=2, pady=10)
-
-    def crear_tabla(self):
-        columnas = ("ID", "Nombre", "Descripción", "Precio", "Stock")
-        self.tabla = ttk.Treeview(self, columns=columnas, show="headings", height=12)
-        self.tabla.pack(fill="both", expand=True, padx=8)
-
-        for col in columnas:
-            self.tabla.heading(col, text=col)
-            self.tabla.column(col, anchor="center")
-
-        scroll = ttk.Scrollbar(self, orient="vertical", command=self.tabla.yview)
-        self.tabla.configure(yscrollcommand=scroll.set)
-        scroll.pack(side="right", fill="y")
-
-    def guardar_producto(self):
-        try:
-            nombre = self.nombre.get().strip()
-            descripcion = self.descripcion.get().strip()
-            precio = float(self.precio.get().strip())
-            stock = int(self.stock.get().strip())
-
-            if not nombre:
-                messagebox.showwarning("Error", "El nombre es obligatorio.")
-                return
-
-            if agregar_producto(nombre, descripcion, precio, stock):
-                messagebox.showinfo("Éxito", "Producto guardado correctamente 🎉")
-                self.limpiar_campos()
-                self.cargar_productos()
-            else:
-                messagebox.showerror("Error", "No se pudo guardar el producto.")
-
-        except ValueError:
-            messagebox.showerror("Error", "Precio y Stock deben ser numéricos.")
-
-    def limpiar_campos(self):
-        self.nombre.delete(0, tk.END)
-        self.descripcion.delete(0, tk.END)
-        self.precio.delete(0, tk.END)
-        self.stock.delete(0, tk.END)
-
-    def cargar_productos(self):
-        self.tabla.delete(*self.tabla.get_children())
         productos = obtener_productos()
 
-        for p in productos:
-            self.tabla.insert("", tk.END, values=(
-                p["id_producto"],
-                p["nombre"],
-                p["descripcion"],
-                p["precio"],
-                p["stock"]
-            ))
+        columns = ("nombre", "codigo", "tipo", "precio", "stock")
+
+        # Encabezados
+        for i, col in enumerate(columns):
+            ctk.CTkLabel(self.tabla_frame, text=col.upper(), font=("Segoe UI", 12, "bold")).grid(row=0, column=i, padx=10, pady=5, sticky="w")
+
+        # Filas de datos
+        for r, p in enumerate(productos, start=1):
+            # Asegurarse de que las claves existan o usar un valor por defecto
+            fila = [
+                p.get("nombre", "-"),
+                p.get("codigo", "-"),
+                p.get("tipo", "-"),
+                f"${float(p.get('precio', 0)):.2f}",
+                str(p.get("stock", 0))
+            ]
+            for c, val in enumerate(fila):
+                ctk.CTkLabel(self.tabla_frame, text=val).grid(row=r, column=c, padx=10, pady=5, sticky="w")
+
+    def abrir_formulario_nuevo(self):
+        """Abre la ventana para crear un nuevo producto."""
+        def handle_creacion(datos):
+            try:
+                # Llama al controlador para agregar el producto a la BD
+                agregar_producto(
+                    nombre=datos["nombre"],
+                    descripcion=f'{datos["tipo"]} {datos["talla"]}', # Combinamos tipo y talla como descripción
+                    precio=float(datos["precio"]),
+                    stock=int(datos["stock"]),
+                    codigo=datos["codigo"] or None
+                )
+                messagebox.showinfo("Éxito", "Producto creado correctamente.")
+                self.cargar_tabla_productos() # Recargar la tabla
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo crear el producto:\n{e}")
+
+        # Crea y muestra la ventana del formulario, pasando la función de callback
+        form_window = NuevoProductoForm(self, on_create=handle_creacion)

@@ -2,21 +2,37 @@
 from database.db import crear_conexion
 
 def obtener_productos():
-    conn = crear_conexion()
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM productos ORDER BY id_producto DESC")
-    rows = cur.fetchall()
-    conn.close()
-    return rows
+    conn = crear_conexion(); cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT id_producto, codigo, nombre, precio, stock, imagen_url FROM productos ORDER BY id_producto DESC")
+    except Exception:
+        try:
+            cur.execute("SELECT id_producto, codigo, nombre, precio, stock FROM productos ORDER BY id_producto DESC")
+        except Exception:
+            cur.execute("SELECT id_producto, nombre, precio, stock FROM productos ORDER BY id_producto DESC")
+    rows = cur.fetchall(); 
+    for r in rows:
+        if 'imagen_url' not in r:
+            r['imagen_url'] = None
+        if 'codigo' not in r:
+            r['codigo'] = None
+    conn.close(); return rows
 
-def agregar_producto(nombre, descripcion, precio, stock):
+def agregar_producto(nombre, descripcion, precio, stock, codigo=None):
     conn = crear_conexion()
     cur = conn.cursor()
-    cur.execute("INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s)",
-                (nombre, descripcion, precio, stock))
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        if codigo and str(codigo).strip():
+            try:
+                cur.execute("INSERT INTO productos (codigo, nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s, %s)", (codigo, nombre, descripcion, precio, stock))
+            except Exception:
+                cur.execute("INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s)", (nombre, descripcion, precio, stock))
+        else:
+            cur.execute("INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s)", (nombre, descripcion, precio, stock))
+        conn.commit(); ok = True
+    except Exception:
+        ok = False
+    conn.close(); return ok
 
 def ajustar_stock(id_producto, cantidad, tipo):
     conn = crear_conexion(); cur = conn.cursor()
@@ -32,10 +48,104 @@ def obtener_categorias():
     cur.execute("SELECT id_categoria, nombre FROM categorias ORDER BY nombre")
     rows = cur.fetchall(); conn.close(); return rows
 
+def crear_categoria(nombre):
+    conn = crear_conexion(); cur = conn.cursor()
+    try:
+        cur.execute("INSERT INTO categorias (nombre) VALUES (%s)", (nombre,))
+        conn.commit(); ok = True
+    except Exception:
+        ok = False
+    conn.close(); return ok
+
 def obtener_productos_por_categoria(id_categoria):
     conn = crear_conexion(); cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id_producto, nombre, precio, stock, imagen_url FROM productos WHERE id_categoria=%s ORDER BY id_producto DESC", (id_categoria,))
-    rows = cur.fetchall(); conn.close(); return rows
+    try:
+        cur.execute("SELECT id_producto, codigo, nombre, precio, stock, imagen_url FROM productos WHERE id_categoria=%s ORDER BY id_producto DESC", (id_categoria,))
+    except Exception:
+        try:
+            cur.execute("SELECT id_producto, codigo, nombre, precio, stock FROM productos WHERE id_categoria=%s ORDER BY id_producto DESC", (id_categoria,))
+        except Exception:
+            cur.execute("SELECT id_producto, nombre, precio, stock FROM productos WHERE id_categoria=%s ORDER BY id_producto DESC", (id_categoria,))
+    rows = cur.fetchall(); 
+    for r in rows:
+        if 'imagen_url' not in r:
+            r['imagen_url'] = None
+        if 'codigo' not in r:
+            r['codigo'] = None
+    conn.close(); return rows
+
+def buscar_productos(query):
+    conn = crear_conexion(); cur = conn.cursor(dictionary=True)
+    q = f"%{query}%"
+    try:
+        # Intentar incluir búsqueda por código único si existe
+        try:
+            cur.execute("SELECT id_producto FROM productos LIMIT 1")
+            cur.execute("SELECT id_producto, nombre, precio, stock, imagen_url FROM productos WHERE nombre LIKE %s OR CAST(id_producto AS CHAR) LIKE %s OR codigo LIKE %s ORDER BY id_producto DESC", (q, q, q))
+        except Exception:
+            cur.execute("SELECT id_producto, nombre, precio, stock, imagen_url FROM productos WHERE nombre LIKE %s OR CAST(id_producto AS CHAR) LIKE %s ORDER BY id_producto DESC", (q, q))
+    except Exception:
+        try:
+            cur.execute("SELECT id_producto, nombre, precio, stock FROM productos WHERE nombre LIKE %s OR CAST(id_producto AS CHAR) LIKE %s OR codigo LIKE %s ORDER BY id_producto DESC", (q, q, q))
+        except Exception:
+            cur.execute("SELECT id_producto, nombre, precio, stock FROM productos WHERE nombre LIKE %s OR CAST(id_producto AS CHAR) LIKE %s ORDER BY id_producto DESC", (q, q))
+    rows = cur.fetchall(); 
+    for r in rows:
+        if 'imagen_url' not in r:
+            r['imagen_url'] = None
+        if 'codigo' not in r:
+            r['codigo'] = None
+    conn.close(); return rows
+
+def obtener_productos_favoritos(limit=12):
+    conn = crear_conexion(); cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT p.id_producto, p.nombre, p.precio, p.stock, p.imagen_url
+            FROM productos p
+            LEFT JOIN detalle_ventas dv ON dv.id_producto = p.id_producto
+            GROUP BY p.id_producto, p.nombre, p.precio, p.stock, p.imagen_url
+            ORDER BY COALESCE(SUM(dv.cantidad), 0) DESC, p.id_producto DESC
+            LIMIT %s
+            """,
+            (limit,)
+        )
+    except Exception:
+        cur.execute(
+            """
+            SELECT p.id_producto, p.nombre, p.precio, p.stock
+            FROM productos p
+            LEFT JOIN detalle_ventas dv ON dv.id_producto = p.id_producto
+            GROUP BY p.id_producto, p.nombre, p.precio, p.stock
+            ORDER BY COALESCE(SUM(dv.cantidad), 0) DESC, p.id_producto DESC
+            LIMIT %s
+            """,
+            (limit,)
+        )
+    rows = cur.fetchall(); 
+    for r in rows:
+        if 'imagen_url' not in r:
+            r['imagen_url'] = None
+    conn.close(); return rows
+
+def obtener_productos_stock_bajo(limit=12):
+    conn = crear_conexion(); cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            "SELECT id_producto, nombre, precio, stock, imagen_url FROM productos WHERE stock<=5 ORDER BY stock ASC, id_producto DESC LIMIT %s",
+            (limit,)
+        )
+    except Exception:
+        cur.execute(
+            "SELECT id_producto, nombre, precio, stock FROM productos WHERE stock<=5 ORDER BY stock ASC, id_producto DESC LIMIT %s",
+            (limit,)
+        )
+    rows = cur.fetchall(); 
+    for r in rows:
+        if 'imagen_url' not in r:
+            r['imagen_url'] = None
+    conn.close(); return rows
 
 def productos_count():
     conn = crear_conexion(); cur = conn.cursor()
@@ -51,3 +161,12 @@ def stock_bajo_list(limit=10):
     conn = crear_conexion(); cur = conn.cursor(dictionary=True)
     cur.execute("SELECT nombre, precio, stock FROM productos WHERE stock<=5 ORDER BY stock ASC, id_producto DESC LIMIT %s", (limit,))
     rows = cur.fetchall(); conn.close(); return rows
+
+def codigo_disponible(codigo):
+    conn = crear_conexion(); cur = conn.cursor()
+    try:
+        cur.execute("SELECT COUNT(*) FROM productos WHERE codigo=%s", (codigo,))
+        c = cur.fetchone()[0]
+        conn.close(); return int(c or 0) == 0
+    except Exception:
+        conn.close(); return True
