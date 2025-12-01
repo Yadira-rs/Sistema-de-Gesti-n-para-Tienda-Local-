@@ -4,33 +4,67 @@ from database.db import crear_conexion
 def obtener_productos():
     conn = crear_conexion(); cur = conn.cursor(dictionary=True)
     try:
-        cur.execute("SELECT id_producto, codigo, nombre, precio, stock, imagen_url FROM productos ORDER BY id_producto DESC")
+        cur.execute("SELECT id_producto, codigo, codigo_barras, nombre, precio, stock, imagen_url FROM productos ORDER BY id_producto DESC")
     except Exception:
         try:
-            cur.execute("SELECT id_producto, codigo, nombre, precio, stock FROM productos ORDER BY id_producto DESC")
+            cur.execute("SELECT id_producto, codigo, nombre, precio, stock, imagen_url FROM productos ORDER BY id_producto DESC")
         except Exception:
-            cur.execute("SELECT id_producto, nombre, precio, stock FROM productos ORDER BY id_producto DESC")
+            try:
+                cur.execute("SELECT id_producto, codigo, nombre, precio, stock FROM productos ORDER BY id_producto DESC")
+            except Exception:
+                cur.execute("SELECT id_producto, nombre, precio, stock FROM productos ORDER BY id_producto DESC")
     rows = cur.fetchall(); 
     for r in rows:
         if 'imagen_url' not in r:
             r['imagen_url'] = None
         if 'codigo' not in r:
             r['codigo'] = None
+        if 'codigo_barras' not in r:
+            r['codigo_barras'] = None
     conn.close(); return rows
 
-def agregar_producto(nombre, descripcion, precio, stock, codigo=None):
+def agregar_producto(nombre, descripcion, precio, stock, codigo=None, codigo_barras=None, id_categoria=None):
     conn = crear_conexion()
     cur = conn.cursor()
     try:
-        if codigo and str(codigo).strip():
-            try:
-                cur.execute("INSERT INTO productos (codigo, nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s, %s)", (codigo, nombre, descripcion, precio, stock))
-            except Exception:
-                cur.execute("INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s)", (nombre, descripcion, precio, stock))
+        # Si no se proporciona código de barras, generar uno
+        if not codigo_barras or not str(codigo_barras).strip():
+            # Insertar primero para obtener el ID
+            if codigo and str(codigo).strip():
+                try:
+                    cur.execute("INSERT INTO productos (codigo, nombre, descripcion, precio, stock, id_categoria) VALUES (%s, %s, %s, %s, %s, %s)", 
+                               (codigo, nombre, descripcion, precio, stock, id_categoria))
+                except Exception:
+                    cur.execute("INSERT INTO productos (nombre, descripcion, precio, stock, id_categoria) VALUES (%s, %s, %s, %s, %s)", 
+                               (nombre, descripcion, precio, stock, id_categoria))
+            else:
+                cur.execute("INSERT INTO productos (nombre, descripcion, precio, stock, id_categoria) VALUES (%s, %s, %s, %s, %s)", 
+                           (nombre, descripcion, precio, stock, id_categoria))
+            
+            # Obtener el ID insertado
+            id_producto = cur.lastrowid
+            
+            # Generar código de barras
+            codigo_barras = generar_codigo_barras(id_categoria or 7, id_producto)
+            
+            # Actualizar con el código de barras
+            cur.execute("UPDATE productos SET codigo_barras = %s WHERE id_producto = %s", (codigo_barras, id_producto))
         else:
-            cur.execute("INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s)", (nombre, descripcion, precio, stock))
+            # Si se proporciona código de barras, insertarlo directamente
+            if codigo and str(codigo).strip():
+                try:
+                    cur.execute("INSERT INTO productos (codigo, codigo_barras, nombre, descripcion, precio, stock, id_categoria) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+                               (codigo, codigo_barras, nombre, descripcion, precio, stock, id_categoria))
+                except Exception:
+                    cur.execute("INSERT INTO productos (codigo_barras, nombre, descripcion, precio, stock, id_categoria) VALUES (%s, %s, %s, %s, %s, %s)", 
+                               (codigo_barras, nombre, descripcion, precio, stock, id_categoria))
+            else:
+                cur.execute("INSERT INTO productos (codigo_barras, nombre, descripcion, precio, stock, id_categoria) VALUES (%s, %s, %s, %s, %s, %s)", 
+                           (codigo_barras, nombre, descripcion, precio, stock, id_categoria))
+        
         conn.commit(); ok = True
-    except Exception:
+    except Exception as e:
+        print(f"Error al agregar producto: {e}")
         ok = False
     conn.close(); return ok
 
@@ -170,3 +204,35 @@ def codigo_disponible(codigo):
         conn.close(); return int(c or 0) == 0
     except Exception:
         conn.close(); return True
+
+def buscar_por_codigo_barras(codigo_barras):
+    """Buscar producto por código de barras único"""
+    conn = crear_conexion(); cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT id_producto, codigo, codigo_barras, nombre, precio, stock, imagen_url FROM productos WHERE codigo_barras=%s LIMIT 1", (codigo_barras,))
+        producto = cur.fetchone()
+        conn.close()
+        return producto
+    except Exception as e:
+        print(f"Error al buscar por código de barras: {e}")
+        conn.close()
+        return None
+
+def codigo_barras_disponible(codigo_barras):
+    """Verificar si un código de barras está disponible"""
+    conn = crear_conexion(); cur = conn.cursor()
+    try:
+        cur.execute("SELECT COUNT(*) FROM productos WHERE codigo_barras=%s", (codigo_barras,))
+        c = cur.fetchone()[0]
+        conn.close(); return int(c or 0) == 0
+    except Exception:
+        conn.close(); return True
+
+def generar_codigo_barras(id_categoria, id_producto):
+    """Generar código de barras único en formato EAN-13 simulado"""
+    import random
+    prefijo = "750"  # Prefijo de empresa
+    categoria = str(id_categoria).zfill(2)  # 2 dígitos
+    producto = str(id_producto).zfill(6)  # 6 dígitos
+    control = str(random.randint(0, 99)).zfill(2)  # 2 dígitos de control
+    return f"{prefijo}{categoria}{producto}{control}"

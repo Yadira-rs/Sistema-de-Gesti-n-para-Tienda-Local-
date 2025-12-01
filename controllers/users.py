@@ -2,11 +2,16 @@ from database.db import crear_conexion
 
 def listar_usuarios():
     conn = crear_conexion(); cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id_usuario, usuario, rol FROM usuarios ORDER BY id_usuario DESC"); rows = cur.fetchall(); conn.close(); return rows
+    cur.execute("SELECT id_usuario, nombre_completo, usuario, email, rol, activo FROM usuarios ORDER BY id_usuario DESC"); rows = cur.fetchall(); conn.close(); return rows
 
-def crear_usuario(usuario, contraseña, rol='cajero', pregunta=None, respuesta=None):
+def crear_usuario(nombre_completo, email, contraseña, rol='Vendedor', activo=True, pregunta=None, respuesta=None):
     conn = crear_conexion(); cur = conn.cursor()
-    cur.execute("INSERT INTO usuarios (usuario, contraseña, rol, pregunta, respuesta) VALUES (%s,%s,%s,%s,%s)", (usuario, contraseña, rol, pregunta, respuesta))
+    # Generar usuario a partir del email (parte antes del @)
+    usuario = email.split('@')[0] if '@' in email else email
+    cur.execute(
+        "INSERT INTO usuarios (nombre_completo, usuario, email, contraseña, rol, pregunta, respuesta, activo) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)", 
+        (nombre_completo, usuario, email, contraseña, rol, pregunta, respuesta, activo)
+    )
     conn.commit(); conn.close()
 
 def recuperar_contraseña(usuario, respuesta, nueva):

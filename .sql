@@ -35,24 +35,27 @@ CREATE TABLE categorias (
 
 CREATE TABLE productos (
     id_producto INT PRIMARY KEY AUTO_INCREMENT,
+    codigo VARCHAR(50) UNIQUE,
+    codigo_barras VARCHAR(100) UNIQUE,
     nombre VARCHAR(100) NOT NULL,
     descripcion VARCHAR(200),
     precio DECIMAL(10,2) NOT NULL,
     stock INT NOT NULL,
     id_categoria INT,
     imagen_url VARCHAR(255),
-    FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria)
+    FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria),
+    INDEX idx_codigo_barras (codigo_barras)
 );
 
 INSERT INTO categorias (nombre) VALUES
 ('Ropa'), ('Calzado'), ('Accesorios'), ('Cuidado de la piel'), ('Papelería'), ('Dulcería'), ('Otros');
 
-INSERT INTO productos (nombre, descripcion, precio, stock, id_categoria) VALUES
-('Blusa Rosa', 'Blusa talla única', 199.00, 20, 1),
-('Pantalón Negro', 'Pantalón dama talla M', 299.00, 15, 1),
-('Vestido Casual', 'Vestido color azul', 399.00, 10, 1),
-('Tenis Blancos', 'Tenis unisex', 499.00, 12, 2),
-('Bolsa de Mano', 'Bolsa cuero sintético', 250.00, 25, 3);
+INSERT INTO productos (codigo, codigo_barras, nombre, descripcion, precio, stock, id_categoria) VALUES
+('BLUS-001', '7500100000101', 'Blusa Rosa', 'Blusa talla única', 199.00, 20, 1),
+('PANT-001', '7500100000201', 'Pantalón Negro', 'Pantalón dama talla M', 299.00, 15, 1),
+('VEST-001', '7500100000301', 'Vestido Casual', 'Vestido color azul', 399.00, 10, 1),
+('CALZ-001', '7500200000101', 'Tenis Blancos', 'Tenis unisex', 499.00, 12, 2),
+('ACCE-001', '7500300000101', 'Bolsa de Mano', 'Bolsa cuero sintético', 250.00, 25, 3);
 
 -- Tabla Ventas
 CREATE TABLE ventas (
@@ -60,7 +63,10 @@ CREATE TABLE ventas (
     fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     id_cliente INT,
     total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    descuento_porcentaje DECIMAL(5,2) DEFAULT 0.00,
+    descuento_monto DECIMAL(10,2) DEFAULT 0.00,
     metodo_pago VARCHAR(20),
+    subtotal DECIMAL(10,2) DEFAULT 0.00,
     FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente)
 );
 

@@ -58,21 +58,31 @@ def eliminar_item(id_producto):
     carrito = [i for i in carrito if i["id_producto"] != id_producto]
     return True
 
-def finalizar_venta(usuario_id=None, metodo="Efectivo"):
+def finalizar_venta(usuario_id=None, metodo="Efectivo", descuento_porcentaje=0):
     if not carrito:
         return False
     conn = crear_conexion()
     cur = conn.cursor()
-    total = 0
+    subtotal = 0
     for item in carrito:
-        total += float(item["precio"]) * int(item["cantidad"])
-    cur.execute("INSERT INTO ventas (id_cliente, total, metodo_pago) VALUES (%s, %s, %s)", (None, total, metodo))
+        subtotal += float(item["precio"]) * int(item["cantidad"])
+    
+    # Aplicar descuento
+    descuento_monto = subtotal * (descuento_porcentaje / 100)
+    total = subtotal - descuento_monto
+    
+    # Insertar venta con descuento
+    cur.execute(
+        "INSERT INTO ventas (id_cliente, subtotal, descuento_porcentaje, descuento_monto, total, metodo_pago) VALUES (%s, %s, %s, %s, %s, %s)", 
+        (None, subtotal, descuento_porcentaje, descuento_monto, total, metodo)
+    )
     id_venta = cur.lastrowid
+    
     for item in carrito:
-        subtotal = float(item["precio"]) * int(item["cantidad"])
+        subtotal_item = float(item["precio"]) * int(item["cantidad"])
         cur.execute(
             "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, subtotal) VALUES (%s, %s, %s, %s)",
-            (id_venta, item["id_producto"], item["cantidad"], subtotal)
+            (id_venta, item["id_producto"], item["cantidad"], subtotal_item)
         )
         cur.execute(
             "UPDATE productos SET stock = stock - %s WHERE id_producto=%s",
@@ -82,7 +92,7 @@ def finalizar_venta(usuario_id=None, metodo="Efectivo"):
     conn.close()
     sale_items = list(carrito)
     carrito.clear()
-    return {"id_venta": id_venta, "total": total, "metodo": metodo, "items": sale_items}
+    return {"id_venta": id_venta, "total": total, "metodo": metodo, "items": sale_items, "descuento": descuento_monto}
 
 def vaciar_carrito():
     carrito.clear()

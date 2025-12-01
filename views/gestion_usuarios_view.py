@@ -84,7 +84,27 @@ class GestionUsuarios(ctk.CTk):
         ctk.CTkButton(panel, text="+ Nuevo Usuario", command=self.crear_usuario).pack(pady=10)
 
     def crear_usuario(self):
-        messagebox.showinfo("Nuevo Usuario", "Formulario de creación de usuario aún no implementado.")
+        from views.nuevo_usuario_form import NuevoUsuarioForm
+        from controllers.users import crear_usuario
+        
+        def guardar_usuario(datos):
+            try:
+                crear_usuario(
+                    nombre_completo=datos['nombre_completo'],
+                    email=datos['email'],
+                    contraseña=datos['password'],
+                    rol=datos['rol'],
+                    activo=datos['activo']
+                )
+                messagebox.showinfo("Éxito", "Usuario creado correctamente")
+                # Recargar la interfaz para mostrar el nuevo usuario
+                for widget in self.winfo_children():
+                    widget.destroy()
+                self.crear_interfaz()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo crear el usuario: {str(e)}")
+        
+        NuevoUsuarioForm(self, on_create=guardar_usuario)
 
 if __name__ == "__main__":
     app = GestionUsuarios()
