@@ -40,8 +40,8 @@ class VentasView(ctk.CTkFrame):
         left_panel = ctk.CTkFrame(body, fg_color="transparent")
         left_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
         
-        # Panel derecho - Carrito (30%)
-        right_panel = ctk.CTkFrame(body, width=400, fg_color="white", corner_radius=15)
+        # Panel derecho - Carrito (ancho ajustado para 3 botones)
+        right_panel = ctk.CTkFrame(body, width=450, fg_color="white", corner_radius=15)
         right_panel.pack(side="right", fill="y")
         right_panel.pack_propagate(False)
         
@@ -64,15 +64,27 @@ class VentasView(ctk.CTkFrame):
         
         self.search_entry = ctk.CTkEntry(
             search_frame,
-            placeholder_text="Buscar productos por nombre, código o escanear código de barras...",
+            placeholder_text="Escanear código de barras o buscar producto...",
             border_width=0,
             fg_color="white",
             font=("Segoe UI", 13),
             text_color="#2C2C2C"
         )
-        self.search_entry.pack(side="left", fill="both", expand=True, padx=(0, 15))
-        self.search_entry.bind("<KeyRelease>", lambda e: self.filtrar_productos())
-        self.search_entry.bind("<Return>", lambda e: self.buscar_codigo_barras())
+        self.search_entry.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        self.search_entry.bind("<KeyRelease>", lambda e: self.manejar_busqueda(e))
+        self.search_entry.bind("<Return>", lambda e: self.procesar_codigo_escaneado())
+        
+        # Botón para producto personalizado
+        ctk.CTkButton(
+            search_frame,
+            text="➕ Otro",
+            fg_color="#9C27B0",
+            hover_color="#7B1FA2",
+            width=80,
+            height=45,
+            font=("Segoe UI", 11, "bold"),
+            command=self.agregar_producto_personalizado
+        ).pack(side="left", padx=(0, 15))
         
         # Grid de productos
         self.productos_scroll = ctk.CTkScrollableFrame(parent, fg_color="transparent")
@@ -127,118 +139,135 @@ class VentasView(ctk.CTkFrame):
         )
         self.contador_label.pack(anchor="w", padx=20, pady=(0, 10))
         
-        # Lista de productos
+        # Lista de productos (altura ajustada)
         self.carrito_scroll = ctk.CTkScrollableFrame(
             parent,
             fg_color="transparent",
-            height=250
+            height=200
         )
-        self.carrito_scroll.pack(fill="x", padx=15, pady=(0, 15))
+        self.carrito_scroll.pack(fill="x", padx=15, pady=(0, 10))
         
-        # Descuento
-        desc_frame = ctk.CTkFrame(parent, fg_color="#FFF9F5", corner_radius=10)
-        desc_frame.pack(fill="x", padx=20, pady=(0, 15))
-        
-        ctk.CTkLabel(
-            desc_frame,
-            text="💰 Descuento (%)",
-            font=("Segoe UI", 12, "bold"),
-            text_color="#FF9800"
-        ).pack(anchor="w", padx=15, pady=(10, 5))
+        # Descuento (compacto y centrado)
+        desc_frame = ctk.CTkFrame(parent, fg_color="#FFF9F5", corner_radius=8)
+        desc_frame.pack(fill="x", padx=20, pady=(0, 10))
         
         desc_input = ctk.CTkFrame(desc_frame, fg_color="transparent")
-        desc_input.pack(fill="x", padx=15, pady=(0, 10))
+        desc_input.pack(fill="x", padx=8, pady=8)
+        
+        ctk.CTkLabel(
+            desc_input,
+            text="💰 Descuento:",
+            font=("Segoe UI", 11, "bold"),
+            text_color="#666666"
+        ).pack(side="left", padx=(5, 10))
         
         self.descuento_entry = ctk.CTkEntry(
             desc_input,
             textvariable=self.descuento_porcentaje,
-            width=80,
-            height=35,
-            corner_radius=8,
-            font=("Segoe UI", 12)
+            width=50,
+            height=32,
+            corner_radius=6,
+            font=("Segoe UI", 11),
+            placeholder_text="0"
         )
-        self.descuento_entry.pack(side="left")
+        self.descuento_entry.pack(side="left", padx=(0, 5))
         self.descuento_entry.bind("<KeyRelease>", lambda e: self.actualizar_totales())
+        
+        ctk.CTkLabel(
+            desc_input,
+            text="%",
+            font=("Segoe UI", 11, "bold"),
+            text_color="#666666"
+        ).pack(side="left", padx=(0, 10))
         
         ctk.CTkButton(
             desc_input,
             text="Aplicar",
-            width=80,
-            height=35,
+            width=70,
+            height=32,
             fg_color="#FF9800",
             hover_color="#F57C00",
-            corner_radius=8,
-            font=("Segoe UI", 11),
+            corner_radius=6,
+            font=("Segoe UI", 10, "bold"),
             command=self.actualizar_totales
-        ).pack(side="left", padx=10)
+        ).pack(side="left")
         
-        # Método de pago
-        pago_frame = ctk.CTkFrame(parent, fg_color="#F5F5F5", corner_radius=10)
-        pago_frame.pack(fill="x", padx=20, pady=(0, 15))
+        # Método de pago (más compacto y ajustado)
+        pago_frame = ctk.CTkFrame(parent, fg_color="#F5F5F5", corner_radius=8)
+        pago_frame.pack(fill="x", padx=20, pady=(0, 10))
         
         ctk.CTkLabel(
             pago_frame,
             text="Método de pago",
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", 11, "bold"),
             text_color="#2C2C2C"
-        ).pack(anchor="w", padx=15, pady=(10, 5))
+        ).pack(anchor="w", padx=12, pady=(8, 5))
         
         metodos_frame = ctk.CTkFrame(pago_frame, fg_color="transparent")
-        metodos_frame.pack(fill="x", padx=15, pady=(0, 10))
+        metodos_frame.pack(fill="x", padx=10, pady=(0, 10))
+        
+        # Configurar grid para 3 columnas iguales
+        metodos_frame.grid_columnconfigure((0, 1, 2), weight=1)
         
         self.metodo_btns = {}
-        for metodo in ["Efectivo", "Tarjeta", "Transferencia"]:
+        metodos = [
+            ("💵", "Efectivo"),
+            ("💳", "Tarjeta"),
+            ("📱", "Transferencia")
+        ]
+        
+        for i, (icono, metodo) in enumerate(metodos):
             btn = ctk.CTkButton(
                 metodos_frame,
-                text=metodo,
+                text=f"{icono}\n{metodo}",
                 fg_color="#E91E63" if metodo == "Efectivo" else "white",
                 text_color="white" if metodo == "Efectivo" else "#666666",
-                border_width=1 if metodo != "Efectivo" else 0,
+                border_width=2 if metodo != "Efectivo" else 0,
                 border_color="#E0E0E0",
                 hover_color="#C2185B" if metodo == "Efectivo" else "#F5F5F5",
-                corner_radius=8,
-                height=40,
-                font=("Segoe UI", 11),
+                corner_radius=10,
+                height=60,
+                font=("Segoe UI", 9, "bold"),
                 command=lambda m=metodo: self.seleccionar_metodo(m)
             )
-            btn.pack(side="left", expand=True, fill="x", padx=2)
+            btn.grid(row=0, column=i, padx=3, sticky="ew")
             self.metodo_btns[metodo] = btn
         
-        # Totales
-        totales_frame = ctk.CTkFrame(parent, fg_color="#FFF0F5", corner_radius=10)
-        totales_frame.pack(fill="x", padx=20, pady=(0, 15))
+        # Totales (más compacto)
+        totales_frame = ctk.CTkFrame(parent, fg_color="#FFF0F5", corner_radius=8)
+        totales_frame.pack(fill="x", padx=20, pady=(0, 10))
         
         # Subtotal
         subtotal_row = ctk.CTkFrame(totales_frame, fg_color="transparent")
-        subtotal_row.pack(fill="x", padx=15, pady=(10, 5))
+        subtotal_row.pack(fill="x", padx=12, pady=(8, 3))
         
-        ctk.CTkLabel(subtotal_row, text="Subtotal:", font=("Segoe UI", 12)).pack(side="left")
-        self.subtotal_label = ctk.CTkLabel(subtotal_row, text="$0.00", font=("Segoe UI", 12))
+        ctk.CTkLabel(subtotal_row, text="Subtotal:", font=("Segoe UI", 11)).pack(side="left")
+        self.subtotal_label = ctk.CTkLabel(subtotal_row, text="$0.00", font=("Segoe UI", 11))
         self.subtotal_label.pack(side="right")
         
         # Descuento
         descuento_row = ctk.CTkFrame(totales_frame, fg_color="transparent")
-        descuento_row.pack(fill="x", padx=15, pady=5)
+        descuento_row.pack(fill="x", padx=12, pady=3)
         
-        ctk.CTkLabel(descuento_row, text="Descuento:", font=("Segoe UI", 12), text_color="#FF9800").pack(side="left")
-        self.descuento_label = ctk.CTkLabel(descuento_row, text="- $0.00", font=("Segoe UI", 12), text_color="#FF9800")
+        ctk.CTkLabel(descuento_row, text="Descuento:", font=("Segoe UI", 11), text_color="#FF9800").pack(side="left")
+        self.descuento_label = ctk.CTkLabel(descuento_row, text="- $0.00", font=("Segoe UI", 11), text_color="#FF9800")
         self.descuento_label.pack(side="right")
         
         # Separador
-        ctk.CTkFrame(totales_frame, height=1, fg_color="#E0E0E0").pack(fill="x", padx=15, pady=5)
+        ctk.CTkFrame(totales_frame, height=1, fg_color="#E0E0E0").pack(fill="x", padx=12, pady=4)
         
         # Total
         total_row = ctk.CTkFrame(totales_frame, fg_color="transparent")
-        total_row.pack(fill="x", padx=15, pady=(5, 10))
+        total_row.pack(fill="x", padx=12, pady=(3, 8))
         
-        ctk.CTkLabel(total_row, text="Total:", font=("Segoe UI", 16, "bold")).pack(side="left")
-        self.total_label = ctk.CTkLabel(total_row, text="$0.00", font=("Segoe UI", 16, "bold"), text_color="#E91E63")
+        ctk.CTkLabel(total_row, text="Total:", font=("Segoe UI", 14, "bold")).pack(side="left")
+        self.total_label = ctk.CTkLabel(total_row, text="$0.00", font=("Segoe UI", 14, "bold"), text_color="#E91E63")
         self.total_label.pack(side="right")
         
-        # Botón procesar
+        # Botón procesar venta (destacado)
         ctk.CTkButton(
             parent,
-            text="Procesar Venta",
+            text="💳 Procesar Venta",
             fg_color="#E91E63",
             hover_color="#C2185B",
             corner_radius=10,
@@ -513,7 +542,7 @@ class VentasView(ctk.CTkFrame):
             self.actualizar_carrito()
     
     def procesar_venta(self):
-        """Procesar la venta"""
+        """Procesar la venta y generar ticket"""
         if not self.carrito:
             messagebox.showwarning("Carrito vacío", "Agrega productos al carrito antes de procesar la venta")
             return
@@ -533,8 +562,17 @@ class VentasView(ctk.CTkFrame):
             return
         
         try:
+            from controllers.products import crear_producto_temporal
+            
             vaciar_carrito()
+            
+            # Procesar productos personalizados primero
             for item in self.carrito:
+                # Si es un producto personalizado (CUSTOM_), crear producto temporal
+                if isinstance(item["id_producto"], str) and item["id_producto"].startswith("CUSTOM_"):
+                    id_temporal = crear_producto_temporal(item["nombre"], item["precio"])
+                    item["id_producto"] = id_temporal
+                
                 producto_data = {
                     "id_producto": item["id_producto"],
                     "nombre": item["nombre"],
@@ -549,7 +587,20 @@ class VentasView(ctk.CTkFrame):
             )
             
             if resultado:
-                messagebox.showinfo("Éxito", f"Venta procesada correctamente\nTotal: ${total:.2f}")
+                # Preparar datos para el ticket
+                ticket_data = {
+                    'id_venta': resultado.get('id_venta'),
+                    'total': total,
+                    'metodo': metodo,
+                    'descuento': descuento_monto,
+                    'items': self.carrito.copy()
+                }
+                
+                # Mostrar ticket
+                from views.ticket_venta_view import TicketVentaView
+                TicketVentaView(self, ticket_data)
+                
+                # Limpiar carrito
                 self.carrito.clear()
                 self.descuento_porcentaje.set(0)
                 self.actualizar_carrito()
@@ -560,21 +611,226 @@ class VentasView(ctk.CTkFrame):
         except Exception as e:
             messagebox.showerror("Error", f"Error al procesar la venta: {str(e)}")
     
-    def buscar_codigo_barras(self):
-        """Buscar producto por código de barras"""
+    def manejar_busqueda(self, event):
+        """Manejar búsqueda en tiempo real"""
+        # Si el texto tiene más de 8 caracteres, podría ser un código de barras
+        texto = self.search_entry.get().strip()
+        
+        if len(texto) >= 8 and texto.isdigit():
+            # Esperar un momento para ver si sigue escribiendo
+            if hasattr(self, '_busqueda_timer'):
+                self.after_cancel(self._busqueda_timer)
+            self._busqueda_timer = self.after(300, self.procesar_codigo_escaneado)
+        else:
+            # Búsqueda normal
+            self.filtrar_productos()
+    
+    def procesar_codigo_escaneado(self):
+        """Procesar código escaneado automáticamente"""
         codigo = self.search_entry.get().strip()
         
         if not codigo:
             return
         
+        # Buscar por código de barras
         producto = buscar_por_codigo_barras(codigo)
         
         if producto:
             self.agregar_producto(producto)
             self.search_entry.delete(0, 'end')
-            messagebox.showinfo("Producto agregado", f"{producto.get('nombre')} agregado al carrito")
+            
+            # Mostrar notificación breve
+            self.mostrar_notificacion(f"✅ {producto.get('nombre')} agregado")
         else:
+            # Si no se encuentra, hacer búsqueda normal
             self.filtrar_productos()
+    
+    def mostrar_notificacion(self, mensaje):
+        """Mostrar notificación temporal"""
+        # Crear label de notificación
+        notif = ctk.CTkLabel(
+            self,
+            text=mensaje,
+            font=("Segoe UI", 12, "bold"),
+            text_color="white",
+            fg_color="#4CAF50",
+            corner_radius=8,
+            padx=20,
+            pady=10
+        )
+        notif.place(relx=0.5, rely=0.1, anchor="center")
+        
+        # Ocultar después de 2 segundos
+        self.after(2000, notif.destroy)
+    
+    def buscar_codigo_barras(self):
+        """Buscar producto por código de barras (método legacy)"""
+        self.procesar_codigo_escaneado()
+    
+    def agregar_producto_personalizado(self):
+        """Agregar producto personalizado que no está en el sistema"""
+        # Crear ventana de producto personalizado
+        custom_window = ctk.CTkToplevel(self)
+        custom_window.title("Producto Personalizado")
+        custom_window.geometry("450x400")
+        custom_window.transient(self)
+        custom_window.grab_set()
+        
+        # Centrar ventana
+        custom_window.update_idletasks()
+        x = (custom_window.winfo_screenwidth() // 2) - (450 // 2)
+        y = (custom_window.winfo_screenheight() // 2) - (400 // 2)
+        custom_window.geometry(f"450x400+{x}+{y}")
+        
+        # Contenido
+        main_frame = ctk.CTkFrame(custom_window, fg_color="white")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(
+            main_frame,
+            text="➕ Producto Personalizado",
+            font=("Segoe UI", 18, "bold"),
+            text_color="#333333"
+        ).pack(pady=(0, 10))
+        
+        ctk.CTkLabel(
+            main_frame,
+            text="Agrega un producto que no está en el sistema",
+            font=("Segoe UI", 11),
+            text_color="#666666"
+        ).pack(pady=(0, 20))
+        
+        # Formulario
+        form_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, pady=(0, 15))
+        
+        # Nombre del producto
+        ctk.CTkLabel(
+            form_frame,
+            text="Nombre del Producto:",
+            font=("Segoe UI", 12),
+            text_color="#666666",
+            anchor="w"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        nombre_entry = ctk.CTkEntry(
+            form_frame,
+            placeholder_text="Ej: Servicio de reparación",
+            height=40,
+            font=("Segoe UI", 12)
+        )
+        nombre_entry.pack(fill="x", pady=(0, 15))
+        nombre_entry.focus()
+        
+        # Precio
+        ctk.CTkLabel(
+            form_frame,
+            text="Precio:",
+            font=("Segoe UI", 12),
+            text_color="#666666",
+            anchor="w"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        precio_entry = ctk.CTkEntry(
+            form_frame,
+            placeholder_text="0.00",
+            height=40,
+            font=("Segoe UI", 12)
+        )
+        precio_entry.pack(fill="x", pady=(0, 15))
+        
+        # Cantidad
+        ctk.CTkLabel(
+            form_frame,
+            text="Cantidad:",
+            font=("Segoe UI", 12),
+            text_color="#666666",
+            anchor="w"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        cantidad_entry = ctk.CTkEntry(
+            form_frame,
+            placeholder_text="1",
+            height=40,
+            font=("Segoe UI", 12)
+        )
+        cantidad_entry.pack(fill="x", pady=(0, 15))
+        cantidad_entry.insert(0, "1")
+        
+        # Nota informativa
+        info_frame = ctk.CTkFrame(form_frame, fg_color="#FFF9C4", corner_radius=8)
+        info_frame.pack(fill="x", pady=(0, 15))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text="ℹ️ Este producto no se guardará en el inventario",
+            font=("Segoe UI", 10),
+            text_color="#F57C00"
+        ).pack(padx=12, pady=8)
+        
+        # Botones
+        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        btn_frame.pack(fill="x")
+        
+        def agregar_custom():
+            nombre = nombre_entry.get().strip()
+            precio_str = precio_entry.get().strip()
+            cantidad_str = cantidad_entry.get().strip()
+            
+            if not nombre or not precio_str:
+                messagebox.showwarning("Datos incompletos", "Por favor ingresa nombre y precio")
+                return
+            
+            try:
+                precio = float(precio_str)
+                cantidad = int(cantidad_str) if cantidad_str else 1
+                
+                if precio <= 0:
+                    messagebox.showwarning("Precio inválido", "El precio debe ser mayor a 0")
+                    return
+                
+                if cantidad <= 0:
+                    messagebox.showwarning("Cantidad inválida", "La cantidad debe ser mayor a 0")
+                    return
+                
+                # Crear producto temporal
+                producto_custom = {
+                    'id_producto': f"CUSTOM_{len(self.carrito)}",
+                    'nombre': nombre,
+                    'precio': precio,
+                    'stock': 9999  # Stock ilimitado para productos personalizados
+                }
+                
+                # Agregar al carrito
+                for _ in range(cantidad):
+                    self.agregar_producto(producto_custom)
+                
+                custom_window.destroy()
+                self.mostrar_notificacion(f"✅ {nombre} agregado ({cantidad}x)")
+                
+            except ValueError:
+                messagebox.showerror("Error", "Precio y cantidad deben ser números válidos")
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="✅ Agregar al Carrito",
+            fg_color="#9C27B0",
+            hover_color="#7B1FA2",
+            height=45,
+            font=("Segoe UI", 12, "bold"),
+            command=agregar_custom
+        ).pack(side="left", expand=True, fill="x", padx=(0, 5))
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancelar",
+            fg_color="#E0E0E0",
+            text_color="#666666",
+            hover_color="#D0D0D0",
+            height=45,
+            font=("Segoe UI", 12),
+            command=custom_window.destroy
+        ).pack(side="left", expand=True, fill="x", padx=(5, 0))
     
     def filtrar_productos(self):
         """Filtrar productos por búsqueda"""

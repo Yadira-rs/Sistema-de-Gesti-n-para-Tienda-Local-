@@ -2,14 +2,12 @@ import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
 
-class GestionCreditosView(ctk.CTk):
-    def __init__(self, usuario=None):
-        super().__init__()
-        self.title("Janet Rosa Bici - Ventas a Crédito")
-        self.geometry("1400x800")
-        ctk.set_appearance_mode("light")
+class GestionCreditosView(ctk.CTkFrame):
+    def __init__(self, parent, user=None):
+        super().__init__(parent, fg_color="#F5F5F5")
+        self.pack(fill="both", expand=True)
         
-        self.usuario = usuario or {"nombre_completo": "Administrador", "email": "admin@janet.com"}
+        self.user = user or {"nombre_completo": "Administrador", "email": "admin@janet.com"}
         self.creditos = []
         self.tab_actual = "Control de Ventas a Crédito"
         
@@ -17,78 +15,15 @@ class GestionCreditosView(ctk.CTk):
         self.cargar_datos()
     
     def crear_interfaz(self):
-        # Contenedor principal
-        main = ctk.CTkFrame(self, fg_color="#F5F5F5")
-        main.pack(fill="both", expand=True)
-        
-        # Sidebar izquierdo
-        self.crear_sidebar(main)
-        
-        # Panel principal
-        self.crear_panel_principal(main)
+        # Panel principal (sin sidebar, ya está en main.py)
+        self.crear_panel_principal(self)
 
-    def crear_sidebar(self, parent):
-        """Menú lateral izquierdo"""
-        sidebar = ctk.CTkFrame(parent, width=220, fg_color="white")
-        sidebar.pack(side="left", fill="y", padx=0, pady=0)
-        sidebar.pack_propagate(False)
-        
-        # Logo y título
-        logo_frame = ctk.CTkFrame(sidebar, fg_color="white")
-        logo_frame.pack(pady=(20, 10))
-        
-        ctk.CTkLabel(logo_frame, text="🚲", font=("Segoe UI", 30), text_color="#E91E63").pack()
-        
-        title_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        title_frame.pack()
-        
-        ctk.CTkLabel(title_frame, text="Janet ", font=("Brush Script MT", 20), text_color="#333333").pack(side="left")
-        ctk.CTkLabel(title_frame, text="Rosa ", font=("Brush Script MT", 20), text_color="#E91E63").pack(side="left")
-        ctk.CTkLabel(title_frame, text="Bici", font=("Brush Script MT", 20), text_color="#333333").pack(side="left")
-        
-        ctk.CTkLabel(sidebar, text="Sistema de ventas", font=("Segoe UI", 11), text_color="#666666").pack(pady=(0, 20))
-        
-        # Menú de navegación
-        menu_items = [
-            ("📊", "Dashboard"),
-            ("🛒", "Punto de Venta"),
-            ("📋", "Apartado"),
-            ("📦", "Inventario"),
-            ("💰", "Ventas"),
-            ("👥", "Usuarios")
-        ]
-        
-        for icon, text in menu_items:
-            btn = ctk.CTkButton(
-                sidebar,
-                text=f"{icon}  {text}",
-                fg_color="transparent",
-                text_color="#333333",
-                hover_color="#F8BBD0",
-                anchor="w",
-                height=40,
-                font=("Segoe UI", 12)
-            )
-            btn.pack(fill="x", padx=10, pady=2)
-        
-        # Categorías
-        ctk.CTkLabel(sidebar, text="Categorías  ›", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(fill="x", padx=15, pady=(30, 10))
-        
-        # Usuario info al final
-        user_frame = ctk.CTkFrame(sidebar, fg_color="#FFF0F5", corner_radius=10)
-        user_frame.pack(side="bottom", fill="x", padx=10, pady=20)
-        
-        ctk.CTkLabel(user_frame, text="👤", font=("Segoe UI", 20), text_color="#E91E63").pack(pady=(10, 5))
-        ctk.CTkLabel(user_frame, text=self.usuario.get("nombre_completo", "Administrador"), 
-                    font=("Segoe UI", 12, "bold"), text_color="#333333").pack()
-        ctk.CTkLabel(user_frame, text="Admin", font=("Segoe UI", 10), text_color="#666666").pack()
-        ctk.CTkLabel(user_frame, text=self.usuario.get("email", "admin@janet.com"), 
-                    font=("Segoe UI", 9), text_color="#999999").pack(pady=(0, 10))
+
 
     def crear_panel_principal(self, parent):
         """Panel principal con créditos"""
-        panel = ctk.CTkFrame(parent, fg_color="#F5F5F5")
-        panel.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        panel = ctk.CTkFrame(parent, fg_color="transparent")
+        panel.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Header con título
         header = ctk.CTkFrame(panel, fg_color="transparent")
@@ -130,7 +65,7 @@ class GestionCreditosView(ctk.CTk):
                 hover_color="#F8BBD0",
                 corner_radius=20,
                 height=40,
-                font=("Segoe UI", 11),
+                font=("Segoe UI", 13),
                 command=lambda t=tab: self.cambiar_tab(t)
             )
             btn.pack(side="left", padx=5)
@@ -179,8 +114,8 @@ class GestionCreditosView(ctk.CTk):
         header_frame = ctk.CTkFrame(left_panel, fg_color="#F5F5F5")
         header_frame.pack(fill="x", padx=0, pady=0)
         
-        headers = ["☑", "#", "Crédito", "Serie", "Venta", "Días", "Vence", "Pasó", "Monto"]
-        widths = [40, 60, 100, 80, 80, 60, 100, 60, 100]
+        headers = ["#", "Venta", "Fecha", "Monto", "Pagado", "Saldo", "Vence", "Estado"]
+        widths = [50, 80, 120, 100, 100, 100, 120, 100]
         
         for i, (header, width) in enumerate(zip(headers, widths)):
             label = ctk.CTkLabel(
@@ -193,16 +128,11 @@ class GestionCreditosView(ctk.CTk):
             label.pack(side="left", padx=5, pady=12)
         
         # Área de contenido
-        content_scroll = ctk.CTkScrollableFrame(left_panel, fg_color="white")
-        content_scroll.pack(fill="both", expand=True, padx=0, pady=0)
+        self.content_scroll = ctk.CTkScrollableFrame(left_panel, fg_color="white")
+        self.content_scroll.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Mensaje si no hay datos
-        ctk.CTkLabel(
-            content_scroll,
-            text="No se registraron abonos hoy",
-            font=("Segoe UI", 14),
-            text_color="#999999"
-        ).pack(expand=True, pady=100)
+        # Cargar créditos
+        self.cargar_creditos_tabla()
         
         # Panel derecho - Acciones y Resumen
         right_panel = ctk.CTkFrame(main_container, fg_color="transparent", width=300)
@@ -250,7 +180,7 @@ class GestionCreditosView(ctk.CTk):
         total_frame = ctk.CTkFrame(resumen_frame, fg_color="transparent")
         total_frame.pack(fill="x", padx=20, pady=5)
         
-        ctk.CTkLabel(total_frame, text="Total Por Cobrar", font=("Segoe UI", 11), 
+        ctk.CTkLabel(total_frame, text="Total Por Cobrar", font=("Segoe UI", 13), 
                     text_color="#666666").pack(side="left")
         self.total_cobrar_label = ctk.CTkLabel(total_frame, text="$0.00", 
                     font=("Segoe UI", 11, "bold"), text_color="#4CAF50")
@@ -260,7 +190,7 @@ class GestionCreditosView(ctk.CTk):
         activos_frame = ctk.CTkFrame(resumen_frame, fg_color="transparent")
         activos_frame.pack(fill="x", padx=20, pady=5)
         
-        ctk.CTkLabel(activos_frame, text="Créditos Activos", font=("Segoe UI", 11), 
+        ctk.CTkLabel(activos_frame, text="Créditos Activos", font=("Segoe UI", 13), 
                     text_color="#666666").pack(side="left")
         self.creditos_activos_label = ctk.CTkLabel(activos_frame, text="0", 
                     font=("Segoe UI", 11, "bold"), text_color="#333333")
@@ -270,7 +200,7 @@ class GestionCreditosView(ctk.CTk):
         vencidos_frame = ctk.CTkFrame(resumen_frame, fg_color="transparent")
         vencidos_frame.pack(fill="x", padx=20, pady=(5, 15))
         
-        ctk.CTkLabel(vencidos_frame, text="Créditos vencidos", font=("Segoe UI", 11), 
+        ctk.CTkLabel(vencidos_frame, text="Créditos vencidos", font=("Segoe UI", 13), 
                     text_color="#666666").pack(side="left")
         self.creditos_vencidos_label = ctk.CTkLabel(vencidos_frame, text="0", 
                     font=("Segoe UI", 11, "bold"), text_color="#E53935")
@@ -278,56 +208,382 @@ class GestionCreditosView(ctk.CTk):
     
     def mostrar_creditos_clientes(self):
         """Mostrar tab de Créditos a clientes"""
+        # Contenedor principal
+        main_container = ctk.CTkFrame(self.content_frame, fg_color="white", corner_radius=12)
+        main_container.pack(fill="both", expand=True)
+        
+        # Header
+        header = ctk.CTkFrame(main_container, fg_color="transparent")
+        header.pack(fill="x", padx=20, pady=15)
+        
         ctk.CTkLabel(
-            self.content_frame,
-            text="Créditos a clientes - En desarrollo",
-            font=("Segoe UI", 16),
+            header,
+            text="Créditos por Cliente",
+            font=("Segoe UI", 16, "bold"),
+            text_color="#333333"
+        ).pack(side="left")
+        
+        # Búsqueda
+        search_frame = ctk.CTkFrame(main_container, fg_color="#F5F5F5", corner_radius=10, height=45)
+        search_frame.pack(fill="x", padx=20, pady=(0, 15))
+        search_frame.pack_propagate(False)
+        
+        ctk.CTkLabel(search_frame, text="🔍", font=("Segoe UI", 16)).pack(side="left", padx=10)
+        search_entry = ctk.CTkEntry(
+            search_frame,
+            placeholder_text="Buscar cliente...",
+            border_width=0,
+            fg_color="#F5F5F5",
+            font=("Segoe UI", 13)
+        )
+        search_entry.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        
+        # Lista de clientes con créditos
+        scroll = ctk.CTkScrollableFrame(main_container, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # Mensaje si no hay datos
+        ctk.CTkLabel(
+            scroll,
+            text="📋 No hay créditos registrados por cliente",
+            font=("Segoe UI", 14),
             text_color="#999999"
-        ).pack(expand=True)
+        ).pack(expand=True, pady=50)
     
     def mostrar_vencidos(self):
         """Mostrar tab de Vencidos"""
+        # Contenedor principal
+        main_container = ctk.CTkFrame(self.content_frame, fg_color="white", corner_radius=12)
+        main_container.pack(fill="both", expand=True)
+        
+        # Header con alerta
+        header = ctk.CTkFrame(main_container, fg_color="#FFEBEE", corner_radius=10)
+        header.pack(fill="x", padx=20, pady=15)
+        
+        header_content = ctk.CTkFrame(header, fg_color="transparent")
+        header_content.pack(fill="x", padx=15, pady=12)
+        
         ctk.CTkLabel(
-            self.content_frame,
-            text="Créditos vencidos - En desarrollo",
-            font=("Segoe UI", 16),
-            text_color="#999999"
-        ).pack(expand=True)
+            header_content,
+            text="⚠️",
+            font=("Segoe UI", 24),
+            text_color="#E53935"
+        ).pack(side="left", padx=(0, 10))
+        
+        text_frame = ctk.CTkFrame(header_content, fg_color="transparent")
+        text_frame.pack(side="left", fill="x", expand=True)
+        
+        ctk.CTkLabel(
+            text_frame,
+            text="Créditos Vencidos",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#E53935",
+            anchor="w"
+        ).pack(anchor="w")
+        
+        ctk.CTkLabel(
+            text_frame,
+            text="Estos créditos han superado su fecha de vencimiento",
+            font=("Segoe UI", 12),
+            text_color="#C62828",
+            anchor="w"
+        ).pack(anchor="w")
+        
+        # Lista de créditos vencidos
+        scroll = ctk.CTkScrollableFrame(main_container, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # Mensaje si no hay vencidos
+        ctk.CTkLabel(
+            scroll,
+            text="✅ No hay créditos vencidos",
+            font=("Segoe UI", 14),
+            text_color="#4CAF50"
+        ).pack(expand=True, pady=50)
     
     def mostrar_abonos_hoy(self):
         """Mostrar tab de Abonos de Hoy"""
+        from datetime import datetime
+        
+        # Contenedor principal
+        main_container = ctk.CTkFrame(self.content_frame, fg_color="white", corner_radius=12)
+        main_container.pack(fill="both", expand=True)
+        
+        # Header con fecha
+        header = ctk.CTkFrame(main_container, fg_color="#E8F5E9", corner_radius=10)
+        header.pack(fill="x", padx=20, pady=15)
+        
+        header_content = ctk.CTkFrame(header, fg_color="transparent")
+        header_content.pack(fill="x", padx=15, pady=12)
+        
         ctk.CTkLabel(
-            self.content_frame,
-            text="Abonos de hoy - En desarrollo",
-            font=("Segoe UI", 16),
+            header_content,
+            text="💰",
+            font=("Segoe UI", 24),
+            text_color="#4CAF50"
+        ).pack(side="left", padx=(0, 10))
+        
+        text_frame = ctk.CTkFrame(header_content, fg_color="transparent")
+        text_frame.pack(side="left", fill="x", expand=True)
+        
+        ctk.CTkLabel(
+            text_frame,
+            text="Abonos de Hoy",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#2E7D32",
+            anchor="w"
+        ).pack(anchor="w")
+        
+        fecha_hoy = datetime.now().strftime("%d de %B de %Y")
+        ctk.CTkLabel(
+            text_frame,
+            text=fecha_hoy,
+            font=("Segoe UI", 12),
+            text_color="#43A047",
+            anchor="w"
+        ).pack(anchor="w")
+        
+        # Resumen del día
+        resumen_frame = ctk.CTkFrame(main_container, fg_color="transparent")
+        resumen_frame.pack(fill="x", padx=20, pady=(0, 15))
+        
+        resumen_frame.grid_columnconfigure((0, 1), weight=1)
+        
+        # Total abonos
+        card1 = ctk.CTkFrame(resumen_frame, fg_color="#F5F5F5", corner_radius=10)
+        card1.grid(row=0, column=0, padx=5, sticky="ew")
+        
+        ctk.CTkLabel(card1, text="Total Abonos", font=("Segoe UI", 12), text_color="#666666").pack(pady=(10, 2))
+        ctk.CTkLabel(card1, text="0", font=("Segoe UI", 20, "bold"), text_color="#333333").pack(pady=(0, 10))
+        
+        # Monto total
+        card2 = ctk.CTkFrame(resumen_frame, fg_color="#F5F5F5", corner_radius=10)
+        card2.grid(row=0, column=1, padx=5, sticky="ew")
+        
+        ctk.CTkLabel(card2, text="Monto Total", font=("Segoe UI", 12), text_color="#666666").pack(pady=(10, 2))
+        ctk.CTkLabel(card2, text="$0.00", font=("Segoe UI", 20, "bold"), text_color="#4CAF50").pack(pady=(0, 10))
+        
+        # Lista de abonos
+        scroll = ctk.CTkScrollableFrame(main_container, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # Mensaje si no hay abonos
+        ctk.CTkLabel(
+            scroll,
+            text="📅 No se registraron abonos hoy",
+            font=("Segoe UI", 14),
             text_color="#999999"
-        ).pack(expand=True)
+        ).pack(expand=True, pady=50)
 
     def cargar_datos(self):
         """Cargar créditos desde la base de datos"""
         try:
-            from controllers.creditos import obtener_creditos
+            from controllers.creditos import obtener_creditos, obtener_resumen_creditos
             self.creditos = obtener_creditos()
+            self.resumen = obtener_resumen_creditos()
             self.actualizar_resumen()
+            
+            # Recargar la tabla si existe
+            if hasattr(self, 'content_scroll'):
+                self.cargar_creditos_tabla()
         except Exception as e:
             print(f"Error al cargar créditos: {e}")
             self.creditos = []
+            self.resumen = {
+                'total_creditos': 0,
+                'activos': 0,
+                'vencidos': 0,
+                'total_por_cobrar': 0
+            }
+    
+    def cargar_creditos_tabla(self):
+        """Cargar créditos en la tabla"""
+        # Limpiar contenido
+        for widget in self.content_scroll.winfo_children():
+            widget.destroy()
+        
+        if not self.creditos:
+            ctk.CTkLabel(
+                self.content_scroll,
+                text="📋 No hay créditos registrados",
+                font=("Segoe UI", 14),
+                text_color="#999999"
+            ).pack(expand=True, pady=100)
+            return
+        
+        # Mostrar créditos
+        for credito in self.creditos:
+            self.crear_fila_credito(credito)
+    
+    def crear_fila_credito(self, credito):
+        """Crear una fila para un crédito"""
+        row = ctk.CTkFrame(self.content_scroll, fg_color="transparent")
+        row.pack(fill="x", pady=2)
+        
+        # Determinar color según estado
+        if credito['estado'] == 'Vencido':
+            bg_color = "#FFEBEE"
+        elif credito['estado'] == 'Pagado':
+            bg_color = "#E8F5E9"
+        else:
+            bg_color = "white"
+        
+        row.configure(fg_color=bg_color)
+        
+        widths = [50, 80, 120, 100, 100, 100, 120, 100]
+        
+        # ID Crédito
+        ctk.CTkLabel(row, text=str(credito['id_credito']), width=widths[0], 
+                    font=("Segoe UI", 12)).pack(side="left", padx=5)
+        
+        # ID Venta
+        ctk.CTkLabel(row, text=f"#{credito['id_venta']}", width=widths[1], 
+                    font=("Segoe UI", 12)).pack(side="left", padx=5)
+        
+        # Fecha
+        fecha = credito['fecha_credito'].strftime("%d/%m/%Y %H:%M") if credito['fecha_credito'] else "-"
+        ctk.CTkLabel(row, text=fecha, width=widths[2], 
+                    font=("Segoe UI", 12)).pack(side="left", padx=5)
+        
+        # Monto Total
+        ctk.CTkLabel(row, text=f"${float(credito['monto_total']):.2f}", width=widths[3], 
+                    font=("Segoe UI", 10, "bold"), text_color="#E91E63").pack(side="left", padx=5)
+        
+        # Monto Pagado
+        ctk.CTkLabel(row, text=f"${float(credito['monto_pagado']):.2f}", width=widths[4], 
+                    font=("Segoe UI", 12), text_color="#4CAF50").pack(side="left", padx=5)
+        
+        # Saldo
+        ctk.CTkLabel(row, text=f"${float(credito['saldo_pendiente']):.2f}", width=widths[5], 
+                    font=("Segoe UI", 10, "bold")).pack(side="left", padx=5)
+        
+        # Fecha Vencimiento
+        vence = credito['fecha_vencimiento'].strftime("%d/%m/%Y") if credito['fecha_vencimiento'] else "-"
+        ctk.CTkLabel(row, text=vence, width=widths[6], 
+                    font=("Segoe UI", 12)).pack(side="left", padx=5)
+        
+        # Estado
+        estado_colors = {
+            'Activo': '#4CAF50',
+            'Vencido': '#F44336',
+            'Pagado': '#2196F3',
+            'Cancelado': '#9E9E9E'
+        }
+        ctk.CTkLabel(row, text=credito['estado'], width=widths[7], 
+                    font=("Segoe UI", 10, "bold"), 
+                    text_color=estado_colors.get(credito['estado'], '#666666')).pack(side="left", padx=5)
     
     def actualizar_resumen(self):
         """Actualizar el resumen de créditos"""
-        total_cobrar = sum(float(c.get("monto", 0)) for c in self.creditos)
-        activos = len([c for c in self.creditos if c.get("estado") == "Activo"])
-        vencidos = len([c for c in self.creditos if c.get("estado") == "Vencido"])
-        
-        self.total_cobrar_label.configure(text=f"${total_cobrar:,.2f}")
-        self.creditos_activos_label.configure(text=str(activos))
-        self.creditos_vencidos_label.configure(text=str(vencidos))
+        if hasattr(self, 'resumen'):
+            self.total_cobrar_label.configure(text=f"${float(self.resumen['total_por_cobrar']):,.2f}")
+            self.creditos_activos_label.configure(text=str(self.resumen['activos']))
+            self.creditos_vencidos_label.configure(text=str(self.resumen['vencidos']))
     
     def nuevo_credito(self):
         """Abrir formulario para nuevo crédito"""
-        messagebox.showinfo("Nuevo Crédito", "Funcionalidad de nuevo crédito en desarrollo")
+        # Crear ventana de nuevo crédito
+        credito_window = ctk.CTkToplevel(self)
+        credito_window.title("Nuevo Crédito")
+        credito_window.geometry("500x600")
+        credito_window.transient(self)
+        credito_window.grab_set()
+        
+        # Centrar ventana
+        credito_window.update_idletasks()
+        x = (credito_window.winfo_screenwidth() // 2) - (500 // 2)
+        y = (credito_window.winfo_screenheight() // 2) - (600 // 2)
+        credito_window.geometry(f"500x600+{x}+{y}")
+        
+        # Contenido
+        main_frame = ctk.CTkFrame(credito_window, fg_color="white")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(
+            main_frame,
+            text="💳 Nuevo Crédito",
+            font=("Segoe UI", 20, "bold"),
+            text_color="#333333"
+        ).pack(pady=(0, 20))
+        
+        # Formulario
+        form_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, pady=(0, 15))
+        
+        # Cliente
+        ctk.CTkLabel(form_frame, text="Cliente:", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        cliente_entry = ctk.CTkEntry(form_frame, placeholder_text="Nombre del cliente", height=40, font=("Segoe UI", 13))
+        cliente_entry.pack(fill="x", pady=(0, 15))
+        
+        # Monto
+        ctk.CTkLabel(form_frame, text="Monto del Crédito:", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        monto_entry = ctk.CTkEntry(form_frame, placeholder_text="$0.00", height=40, font=("Segoe UI", 13))
+        monto_entry.pack(fill="x", pady=(0, 15))
+        
+        # Plazo
+        ctk.CTkLabel(form_frame, text="Plazo (días):", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        plazo_entry = ctk.CTkEntry(form_frame, placeholder_text="30", height=40, font=("Segoe UI", 13))
+        plazo_entry.pack(fill="x", pady=(0, 15))
+        
+        # Tasa de interés
+        ctk.CTkLabel(form_frame, text="Tasa de Interés (%):", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        tasa_entry = ctk.CTkEntry(form_frame, placeholder_text="0", height=40, font=("Segoe UI", 13))
+        tasa_entry.pack(fill="x", pady=(0, 15))
+        
+        # Notas
+        ctk.CTkLabel(form_frame, text="Notas:", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        notas_entry = ctk.CTkTextbox(form_frame, height=80, font=("Segoe UI", 13))
+        notas_entry.pack(fill="x", pady=(0, 15))
+        
+        # Botones
+        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        btn_frame.pack(fill="x")
+        
+        def guardar_credito():
+            cliente = cliente_entry.get().strip()
+            monto = monto_entry.get().strip()
+            plazo = plazo_entry.get().strip()
+            
+            if not cliente or not monto or not plazo:
+                messagebox.showwarning("Datos incompletos", "Por favor completa todos los campos obligatorios")
+                return
+            
+            try:
+                monto_float = float(monto)
+                plazo_int = int(plazo)
+                
+                messagebox.showinfo(
+                    "Crédito Registrado",
+                    f"Crédito registrado exitosamente:\n\n"
+                    f"Cliente: {cliente}\n"
+                    f"Monto: ${monto_float:,.2f}\n"
+                    f"Plazo: {plazo_int} días"
+                )
+                credito_window.destroy()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Monto y plazo deben ser números válidos")
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="💾 Guardar Crédito",
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            height=45,
+            font=("Segoe UI", 12, "bold"),
+            command=guardar_credito
+        ).pack(side="left", expand=True, fill="x", padx=(0, 5))
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancelar",
+            fg_color="#E0E0E0",
+            text_color="#666666",
+            hover_color="#D0D0D0",
+            height=45,
+            font=("Segoe UI", 12),
+            command=credito_window.destroy
+        ).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
 
-if __name__ == "__main__":
-    app = GestionCreditosView()
-    app.mainloop()
+

@@ -174,3 +174,54 @@ def registrar_pago_apartado(id_apartado, monto_pago):
         conn.rollback()
         conn.close()
         return False
+
+
+def crear_apartado_simple(id_cliente, total, anticipo, fecha_limite=None):
+    """Crear un apartado simple sin productos específicos"""
+    conn = crear_conexion()
+    cur = conn.cursor()
+    try:
+        saldo = total - anticipo
+        
+        cur.execute("""
+            INSERT INTO apartados (id_cliente, total, anticipo, saldo, fecha_limite, estado)
+            VALUES (%s, %s, %s, %s, %s, 'Pendiente')
+        """, (id_cliente, total, anticipo, saldo, fecha_limite))
+        
+        id_apartado = cur.lastrowid
+        conn.commit()
+        conn.close()
+        return id_apartado
+    except Exception as e:
+        print(f"Error al crear apartado: {e}")
+        conn.rollback()
+        conn.close()
+        return None
+
+def obtener_estadisticas_apartados():
+    """Obtener estadísticas de apartados"""
+    conn = crear_conexion()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN estado = 'Pendiente' THEN 1 ELSE 0 END) as activos,
+                SUM(CASE WHEN estado = 'Pagado' THEN 1 ELSE 0 END) as completados,
+                SUM(CASE WHEN estado = 'Cancelado' THEN 1 ELSE 0 END) as cancelados,
+                COALESCE(SUM(CASE WHEN estado = 'Pendiente' THEN saldo ELSE 0 END), 0) as pendiente_total
+            FROM apartados
+        """)
+        stats = cur.fetchone()
+        conn.close()
+        return stats
+    except Exception as e:
+        print(f"Error al obtener estadísticas: {e}")
+        conn.close()
+        return {
+            'total': 0,
+            'activos': 0,
+            'completados': 0,
+            'cancelados': 0,
+            'pendiente_total': 0
+        }

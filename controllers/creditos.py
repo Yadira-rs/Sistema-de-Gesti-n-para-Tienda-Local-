@@ -1,25 +1,216 @@
 from database.db import crear_conexion
+from datetime import datetime, timedelta
 
 def obtener_creditos():
     """
-    Obtiene todos los créditos de la base de datos.
+    Obtiene todos los créditos de la base de datos con información de la venta.
     """
     conn = crear_conexion()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM creditos")
-    datos = cursor.fetchall()
-    conn.close()
-    return datos
+    try:
+        cursor.execute("""
+            SELECT 
+                c.id_credito,
+                c.id_venta,
+                c.fecha_credito,
+                c.monto_total,
+                c.monto_pagado,
+                c.saldo_pendiente,
+                c.plazo_dias,
+                c.fecha_vencimiento,
+                c.estado,
+                c.notas,
+                v.fecha as fecha_venta,
+                v.metodo_pago,
+                DATEDIFF(CURDATE(), c.fecha_credito) as dias_transcurridos,
+                DATEDIFF(c.fecha_vencimiento, CURDATE()) as dias_para_vencer
+            FROM creditos c
+            LEFT JOIN ventas v ON c.id_venta = v.id_venta
+            ORDER BY c.fecha_credito DESC
+        """)
+        datos = cursor.fetchall()
+        
+        # Actualizar estado de créditos vencidos
+        for credito in datos:
+            if credito['dias_para_vencer'] < 0 and credito['estado'] == 'Activo':
+                cursor.execute(
+                    "UPDATE creditos SET estado = 'Vencido' WHERE id_credito = %s",
+                    (credito['id_credito'],)
+                )
+                credito['estado'] = 'Vencido'
+        
+        conn.commit()
+        conn.close()
+        return datos
+    except Exception as e:
+        print(f"Error al obtener créditos: {e}")
+        conn.close()
+        return []
 
-def crear_credito(cliente, serie, venta, dias, vence, monto):
+def obtener_creditos_activos():
+    """Obtiene solo los créditos activos"""
+    conn = crear_conexion()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                c.*,
+                v.fecha as fecha_venta,
+                DATEDIFF(c.fecha_vencimiento, CURDATE()) as dias_para_vencer
+            FROM creditos c
+            LEFT JOIN ventas v ON c.id_venta = v.id_venta
+            WHERE c.estado = 'Activo'
+            ORDER BY c.fecha_vencimiento ASC
+        """)
+        datos = cursor.fetchall()
+        conn.close()
+        return datos
+    except Exception as e:
+        print(f"Error: {e}")
+        conn.close()
+        return []
+
+def obtener_creditos_vencidos():
+    """Obtiene los créditos vencidos"""
+    conn = crear_conexion()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                c.*,
+                v.fecha as fecha_venta,
+                DATEDIFF(CURDATE(), c.fecha_vencimiento) as dias_vencido
+            FROM creditos c
+            LEFT JOIN ventas v ON c.id_venta = v.id_venta
+            WHERE c.estado = 'Vencido' OR (c.estado = 'Activo' AND c.fecha_vencimiento < CURDATE())
+            ORDER BY c.fecha_vencimiento ASC
+        """)
+        datos = cursor.fetchall()
+        conn.close()
+        return datos
+    except Exception as e:
+        print(f"Error: {e}")
+        conn.close()
+        return []
+
+def obtener_abonos_hoy():
+    """Obtiene los abonos realizados hoy"""
+    conn = crear_conexion()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                a.*,
+                c.id_venta,
+                c.monto_total
+            FROM abonos_creditos a
+            LEFT JOIN creditos c ON a.id_credito = c.id_credito
+            WHERE DATE(a.fecha_abono) = CURDATE()
+            ORDER BY a.fecha_abono DESC
+        """)
+        datos = cursor.fetchall()
+        conn.close()
+        return datos
+    except Exception as e:
+        print(f"Error: {e}")
+        conn.close()
+        return []
+
+def crear_credito(id_venta, id_cliente, monto_total, plazo_dias=30, tasa_interes=0, notas=""):
     """
-    Inserta un nuevo registro de crédito en la base de datos.
+    Crea un nuevo crédito asociado a una venta.
     """
     conn = crear_conexion()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO creditos (cliente, serie, venta, dias, vence, monto) VALUES (%s, %s, %s, %s, %s, %s)",
-        (cliente, serie, venta, dias, vence, monto)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        fecha_vencimiento = (datetime.now() + timedelta(days=plazo_dias)).date()
+        
+        cursor.execute(
+            """INSERT INTO creditos (id_venta, id_cliente, monto_total, saldo_pendiente, 
+               plazo_dias, fecha_vencimiento, tasa_interes, estado, notas) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (id_venta, id_cliente, monto_total, monto_total, plazo_dias, 
+             fecha_vencimiento, tasa_interes, 'Activo', notas)
+        )
+        conn.commit()
+        id_credito = cursor.lastrowid
+        conn.close()
+        return id_credito
+    except Exception as e:
+        print(f"Error al crear crédito: {e}")
+        conn.close()
+        return None
+
+def registrar_abono(id_credito, monto_abono, metodo_pago="Efectivo", notas=""):
+    """
+    Registra un abono a un crédito y actualiza el saldo.
+    """
+    conn = crear_conexion()
+    cursor = conn.cursor()
+    try:
+        # Registrar el abono
+        cursor.execute(
+            """INSERT INTO abonos_creditos (id_credito, monto_abono, metodo_pago, notas)
+               VALUES (%s, %s, %s, %s)""",
+            (id_credito, monto_abono, metodo_pago, notas)
+        )
+        
+        # Actualizar el crédito
+        cursor.execute(
+            """UPDATE creditos 
+               SET monto_pagado = monto_pagado + %s,
+                   saldo_pendiente = saldo_pendiente - %s
+               WHERE id_credito = %s""",
+            (monto_abono, monto_abono, id_credito)
+        )
+        
+        # Verificar si el crédito está pagado
+        cursor.execute(
+            "SELECT saldo_pendiente FROM creditos WHERE id_credito = %s",
+            (id_credito,)
+        )
+        saldo = cursor.fetchone()[0]
+        
+        if saldo <= 0:
+            cursor.execute(
+                "UPDATE creditos SET estado = 'Pagado' WHERE id_credito = %s",
+                (id_credito,)
+            )
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error al registrar abono: {e}")
+        conn.close()
+        return False
+
+def obtener_resumen_creditos():
+    """Obtiene un resumen de los créditos"""
+    conn = crear_conexion()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_creditos,
+                SUM(CASE WHEN estado = 'Activo' THEN 1 ELSE 0 END) as activos,
+                SUM(CASE WHEN estado = 'Vencido' THEN 1 ELSE 0 END) as vencidos,
+                SUM(CASE WHEN estado = 'Pagado' THEN 1 ELSE 0 END) as pagados,
+                COALESCE(SUM(CASE WHEN estado IN ('Activo', 'Vencido') THEN saldo_pendiente ELSE 0 END), 0) as total_por_cobrar,
+                COALESCE(SUM(monto_pagado), 0) as total_cobrado
+            FROM creditos
+        """)
+        resumen = cursor.fetchone()
+        conn.close()
+        return resumen
+    except Exception as e:
+        print(f"Error: {e}")
+        conn.close()
+        return {
+            'total_creditos': 0,
+            'activos': 0,
+            'vencidos': 0,
+            'pagados': 0,
+            'total_por_cobrar': 0,
+            'total_cobrado': 0
+        }

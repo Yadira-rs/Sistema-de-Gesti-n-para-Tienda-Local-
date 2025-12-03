@@ -3,14 +3,12 @@ from tkinter import messagebox
 from datetime import datetime
 from controllers.apartados import listar_apartados, obtener_apartado_detalle, actualizar_estado_apartado
 
-class GestionApartadosView(ctk.CTk):
-    def __init__(self, usuario=None):
-        super().__init__()
-        self.title("Janet Rosa Bici - Apartados")
-        self.geometry("1400x800")
-        ctk.set_appearance_mode("light")
+class GestionApartadosView(ctk.CTkFrame):
+    def __init__(self, parent, user=None):
+        super().__init__(parent, fg_color="#F5F5F5")
+        self.pack(fill="both", expand=True)
         
-        self.usuario = usuario or {"nombre_completo": "Administrador", "email": "admin@janet.com"}
+        self.user = user or {"nombre_completo": "Administrador", "email": "admin@janet.com"}
         self.apartados = []
         self.estado_filtro = "Todos los estados"
         
@@ -18,78 +16,15 @@ class GestionApartadosView(ctk.CTk):
         self.cargar_datos()
     
     def crear_interfaz(self):
-        # Contenedor principal
-        main = ctk.CTkFrame(self, fg_color="#F5F5F5")
-        main.pack(fill="both", expand=True)
-        
-        # Sidebar izquierdo
-        self.crear_sidebar(main)
-        
-        # Panel principal
-        self.crear_panel_principal(main)
+        # Panel principal (sin sidebar, ya está en main.py)
+        self.crear_panel_principal(self)
 
-    def crear_sidebar(self, parent):
-        """Menú lateral izquierdo"""
-        sidebar = ctk.CTkFrame(parent, width=220, fg_color="white")
-        sidebar.pack(side="left", fill="y", padx=0, pady=0)
-        sidebar.pack_propagate(False)
-        
-        # Logo y título
-        logo_frame = ctk.CTkFrame(sidebar, fg_color="white")
-        logo_frame.pack(pady=(20, 10))
-        
-        ctk.CTkLabel(logo_frame, text="🚲", font=("Segoe UI", 30), text_color="#E91E63").pack()
-        
-        title_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        title_frame.pack()
-        
-        ctk.CTkLabel(title_frame, text="Janet ", font=("Brush Script MT", 20), text_color="#333333").pack(side="left")
-        ctk.CTkLabel(title_frame, text="Rosa ", font=("Brush Script MT", 20), text_color="#E91E63").pack(side="left")
-        ctk.CTkLabel(title_frame, text="Bici", font=("Brush Script MT", 20), text_color="#333333").pack(side="left")
-        
-        ctk.CTkLabel(sidebar, text="Sistema de ventas", font=("Segoe UI", 11), text_color="#666666").pack(pady=(0, 20))
-        
-        # Menú de navegación
-        menu_items = [
-            ("📊", "Dashboard"),
-            ("🛒", "Punto de Venta"),
-            ("📋", "Apartado"),
-            ("📦", "Inventario"),
-            ("💰", "Ventas"),
-            ("👥", "Usuarios")
-        ]
-        
-        for icon, text in menu_items:
-            btn = ctk.CTkButton(
-                sidebar,
-                text=f"{icon}  {text}",
-                fg_color="#F8BBD0" if text == "Apartado" else "transparent",
-                text_color="#333333",
-                hover_color="#F8BBD0",
-                anchor="w",
-                height=40,
-                font=("Segoe UI", 12)
-            )
-            btn.pack(fill="x", padx=10, pady=2)
-        
-        # Categorías
-        ctk.CTkLabel(sidebar, text="Categorías  ›", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(fill="x", padx=15, pady=(30, 10))
-        
-        # Usuario info al final
-        user_frame = ctk.CTkFrame(sidebar, fg_color="#FFF0F5", corner_radius=10)
-        user_frame.pack(side="bottom", fill="x", padx=10, pady=20)
-        
-        ctk.CTkLabel(user_frame, text="👤", font=("Segoe UI", 20), text_color="#E91E63").pack(pady=(10, 5))
-        ctk.CTkLabel(user_frame, text=self.usuario.get("nombre_completo", "Administrador"), 
-                    font=("Segoe UI", 12, "bold"), text_color="#333333").pack()
-        ctk.CTkLabel(user_frame, text="Admin", font=("Segoe UI", 10), text_color="#666666").pack()
-        ctk.CTkLabel(user_frame, text=self.usuario.get("email", "admin@janet.com"), 
-                    font=("Segoe UI", 9), text_color="#999999").pack(pady=(0, 10))
+
 
     def crear_panel_principal(self, parent):
         """Panel principal con apartados"""
-        panel = ctk.CTkFrame(parent, fg_color="#F5F5F5")
-        panel.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        panel = ctk.CTkFrame(parent, fg_color="transparent")
+        panel.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Header con título y botón
         header = ctk.CTkFrame(panel, fg_color="transparent")
@@ -141,7 +76,7 @@ class GestionApartadosView(ctk.CTk):
         info_frame1 = ctk.CTkFrame(card1, fg_color="transparent")
         info_frame1.pack(fill="both", expand=True, padx=15, pady=15)
         
-        ctk.CTkLabel(info_frame1, text="📋 Total", font=("Segoe UI", 11), 
+        ctk.CTkLabel(info_frame1, text="📋 Total", font=("Segoe UI", 13), 
                     text_color="#666666", anchor="w").pack(anchor="w")
         self.total_label = ctk.CTkLabel(info_frame1, text="1", 
                     font=("Segoe UI", 28, "bold"), text_color="#333333", anchor="w")
@@ -154,7 +89,7 @@ class GestionApartadosView(ctk.CTk):
         info_frame2 = ctk.CTkFrame(card2, fg_color="transparent")
         info_frame2.pack(fill="both", expand=True, padx=15, pady=15)
         
-        ctk.CTkLabel(info_frame2, text="Activos", font=("Segoe UI", 11), 
+        ctk.CTkLabel(info_frame2, text="Activos", font=("Segoe UI", 13), 
                     text_color="#666666", anchor="w").pack(anchor="w")
         self.activos_label = ctk.CTkLabel(info_frame2, text="0", 
                     font=("Segoe UI", 28, "bold"), text_color="#333333", anchor="w")
@@ -167,7 +102,7 @@ class GestionApartadosView(ctk.CTk):
         info_frame3 = ctk.CTkFrame(card3, fg_color="transparent")
         info_frame3.pack(fill="both", expand=True, padx=15, pady=15)
         
-        ctk.CTkLabel(info_frame3, text="✅ Completados", font=("Segoe UI", 11), 
+        ctk.CTkLabel(info_frame3, text="✅ Completados", font=("Segoe UI", 13), 
                     text_color="#666666", anchor="w").pack(anchor="w")
         self.completados_label = ctk.CTkLabel(info_frame3, text="0", 
                     font=("Segoe UI", 28, "bold"), text_color="#4CAF50", anchor="w")
@@ -180,7 +115,7 @@ class GestionApartadosView(ctk.CTk):
         info_frame4 = ctk.CTkFrame(card4, fg_color="transparent")
         info_frame4.pack(fill="both", expand=True, padx=15, pady=15)
         
-        ctk.CTkLabel(info_frame4, text="🚫 Cancelados", font=("Segoe UI", 11), 
+        ctk.CTkLabel(info_frame4, text="🚫 Cancelados", font=("Segoe UI", 13), 
                     text_color="#666666", anchor="w").pack(anchor="w")
         self.cancelados_label = ctk.CTkLabel(info_frame4, text="1", 
                     font=("Segoe UI", 28, "bold"), text_color="#E53935", anchor="w")
@@ -193,7 +128,7 @@ class GestionApartadosView(ctk.CTk):
         info_frame5 = ctk.CTkFrame(card5, fg_color="transparent")
         info_frame5.pack(fill="both", expand=True, padx=15, pady=15)
         
-        ctk.CTkLabel(info_frame5, text="⏱ Pendiente", font=("Segoe UI", 11), 
+        ctk.CTkLabel(info_frame5, text="⏱ Pendiente", font=("Segoe UI", 13), 
                     text_color="#666666", anchor="w").pack(anchor="w")
         self.pendiente_label = ctk.CTkLabel(info_frame5, text="$0.00", 
                     font=("Segoe UI", 28, "bold"), text_color="#FF9800", anchor="w")
@@ -281,17 +216,29 @@ class GestionApartadosView(ctk.CTk):
     
     def actualizar_estadisticas(self):
         """Actualizar las tarjetas de estadísticas"""
-        total = len(self.apartados)
-        activos = sum(1 for a in self.apartados if a.get("estado") == "Pendiente")
-        completados = sum(1 for a in self.apartados if a.get("estado") == "Pagado")
-        cancelados = sum(1 for a in self.apartados if a.get("estado") == "Cancelado")
-        pendiente_total = sum(float(a.get("saldo", 0)) for a in self.apartados if a.get("estado") == "Pendiente")
-        
-        self.total_label.configure(text=str(total))
-        self.activos_label.configure(text=str(activos))
-        self.completados_label.configure(text=str(completados))
-        self.cancelados_label.configure(text=str(cancelados))
-        self.pendiente_label.configure(text=f"${pendiente_total:,.2f}")
+        try:
+            from controllers.apartados import obtener_estadisticas_apartados
+            stats = obtener_estadisticas_apartados()
+            
+            self.total_label.configure(text=str(stats.get('total', 0)))
+            self.activos_label.configure(text=str(stats.get('activos', 0)))
+            self.completados_label.configure(text=str(stats.get('completados', 0)))
+            self.cancelados_label.configure(text=str(stats.get('cancelados', 0)))
+            self.pendiente_label.configure(text=f"${float(stats.get('pendiente_total', 0)):,.2f}")
+        except Exception as e:
+            print(f"Error al actualizar estadísticas: {e}")
+            # Valores por defecto si hay error
+            total = len(self.apartados)
+            activos = sum(1 for a in self.apartados if a.get("estado") == "Pendiente")
+            completados = sum(1 for a in self.apartados if a.get("estado") == "Pagado")
+            cancelados = sum(1 for a in self.apartados if a.get("estado") == "Cancelado")
+            pendiente_total = sum(float(a.get("saldo", 0)) for a in self.apartados if a.get("estado") == "Pendiente")
+            
+            self.total_label.configure(text=str(total))
+            self.activos_label.configure(text=str(activos))
+            self.completados_label.configure(text=str(completados))
+            self.cancelados_label.configure(text=str(cancelados))
+            self.pendiente_label.configure(text=f"${pendiente_total:,.2f}")
     
     def mostrar_apartados(self, apartados):
         """Mostrar apartados en la tabla"""
@@ -324,7 +271,7 @@ class GestionApartadosView(ctk.CTk):
         ctk.CTkLabel(
             fila,
             text=cliente[:25] + "..." if len(cliente) > 25 else cliente,
-            font=("Segoe UI", 11),
+            font=("Segoe UI", 13),
             text_color="#333333",
             width=180,
             anchor="w"
@@ -335,7 +282,7 @@ class GestionApartadosView(ctk.CTk):
         ctk.CTkLabel(
             fila,
             text=f"${total:.2f}",
-            font=("Segoe UI", 11),
+            font=("Segoe UI", 13),
             text_color="#333333",
             width=100,
             anchor="w"
@@ -370,7 +317,7 @@ class GestionApartadosView(ctk.CTk):
         ctk.CTkLabel(
             fila,
             text=str(fecha_limite),
-            font=("Segoe UI", 11),
+            font=("Segoe UI", 13),
             text_color="#666666",
             width=120,
             anchor="w"
@@ -469,7 +416,288 @@ class GestionApartadosView(ctk.CTk):
     
     def nuevo_apartado(self):
         """Abrir formulario para crear nuevo apartado"""
-        messagebox.showinfo("Nuevo Apartado", "Funcionalidad de nuevo apartado en desarrollo")
+        # Crear ventana de nuevo apartado
+        apartado_window = ctk.CTkToplevel(self)
+        apartado_window.title("Nuevo Apartado")
+        apartado_window.geometry("600x700")
+        apartado_window.transient(self)
+        apartado_window.grab_set()
+        
+        # Centrar ventana
+        apartado_window.update_idletasks()
+        x = (apartado_window.winfo_screenwidth() // 2) - (600 // 2)
+        y = (apartado_window.winfo_screenheight() // 2) - (700 // 2)
+        apartado_window.geometry(f"600x700+{x}+{y}")
+        
+        # Contenido
+        main_frame = ctk.CTkFrame(apartado_window, fg_color="white")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(
+            main_frame,
+            text="📋 Nuevo Apartado",
+            font=("Segoe UI", 20, "bold"),
+            text_color="#333333"
+        ).pack(pady=(0, 20))
+        
+        # Formulario
+        form_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, pady=(0, 15))
+        
+        # Información del cliente
+        ctk.CTkLabel(
+            form_frame,
+            text="Información del Cliente",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#E91E63"
+        ).pack(anchor="w", pady=(0, 10))
+        
+        # Nombre del cliente
+        ctk.CTkLabel(form_frame, text="Nombre del Cliente:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        cliente_entry = ctk.CTkEntry(form_frame, placeholder_text="Nombre completo", height=40, font=("Segoe UI", 13))
+        cliente_entry.pack(fill="x", pady=(0, 15))
+        
+        # Teléfono
+        ctk.CTkLabel(form_frame, text="Teléfono:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        telefono_entry = ctk.CTkEntry(form_frame, placeholder_text="10 dígitos", height=40, font=("Segoe UI", 13))
+        telefono_entry.pack(fill="x", pady=(0, 15))
+        
+        # Información del apartado
+        ctk.CTkLabel(
+            form_frame,
+            text="Información del Apartado",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#E91E63"
+        ).pack(anchor="w", pady=(10, 10))
+        
+        # Total
+        ctk.CTkLabel(form_frame, text="Total del Apartado:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        total_entry = ctk.CTkEntry(form_frame, placeholder_text="$0.00", height=40, font=("Segoe UI", 13))
+        total_entry.pack(fill="x", pady=(0, 15))
+        
+        # Anticipo
+        ctk.CTkLabel(form_frame, text="Anticipo:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        anticipo_entry = ctk.CTkEntry(form_frame, placeholder_text="$0.00", height=40, font=("Segoe UI", 13))
+        anticipo_entry.pack(fill="x", pady=(0, 15))
+        
+        # Fecha límite con calendario
+        ctk.CTkLabel(form_frame, text="Fecha Límite:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        
+        fecha_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        fecha_frame.pack(fill="x", pady=(0, 15))
+        
+        fecha_entry = ctk.CTkEntry(fecha_frame, placeholder_text="DD/MM/AAAA", height=40, font=("Segoe UI", 13))
+        fecha_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        
+        # Botón para abrir calendario
+        def abrir_calendario():
+            try:
+                from tkcalendar import Calendar
+                import tkinter as tk
+                
+                cal_window = ctk.CTkToplevel(apartado_window)
+                cal_window.title("Seleccionar Fecha")
+                cal_window.geometry("300x300")
+                cal_window.transient(apartado_window)
+                cal_window.grab_set()
+                
+                # Centrar ventana
+                cal_window.update_idletasks()
+                x = (cal_window.winfo_screenwidth() // 2) - (300 // 2)
+                y = (cal_window.winfo_screenheight() // 2) - (300 // 2)
+                cal_window.geometry(f"300x300+{x}+{y}")
+                
+                # Calendario
+                cal = Calendar(cal_window, selectmode='day', date_pattern='dd/mm/yyyy')
+                cal.pack(fill="both", expand=True, padx=10, pady=10)
+                
+                def seleccionar_fecha():
+                    fecha_entry.delete(0, 'end')
+                    fecha_entry.insert(0, cal.get_date())
+                    cal_window.destroy()
+                
+                ctk.CTkButton(
+                    cal_window,
+                    text="Seleccionar",
+                    command=seleccionar_fecha,
+                    fg_color="#E91E63",
+                    hover_color="#C2185B"
+                ).pack(pady=10)
+                
+            except ImportError:
+                messagebox.showinfo("Calendario", "Instala tkcalendar: pip install tkcalendar")
+        
+        ctk.CTkButton(
+            fecha_frame,
+            text="📅",
+            width=50,
+            height=40,
+            fg_color="#E91E63",
+            hover_color="#C2185B",
+            font=("Segoe UI", 18),
+            command=abrir_calendario
+        ).pack(side="left")
+        
+        # Descripción
+        ctk.CTkLabel(form_frame, text="Descripción del Producto:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        descripcion_entry = ctk.CTkTextbox(form_frame, height=80, font=("Segoe UI", 13))
+        descripcion_entry.pack(fill="x", pady=(0, 15))
+        
+        # Resumen con cálculo automático
+        resumen_frame = ctk.CTkFrame(form_frame, fg_color="#E8F5E9", corner_radius=10)
+        resumen_frame.pack(fill="x", pady=(10, 0))
+        
+        resumen_content = ctk.CTkFrame(resumen_frame, fg_color="transparent")
+        resumen_content.pack(fill="x", padx=15, pady=12)
+        
+        ctk.CTkLabel(
+            resumen_content,
+            text="💰 Cuánta feria tiene que dar:",
+            font=("Segoe UI", 13, "bold"),
+            text_color="#2E7D32",
+            anchor="w"
+        ).pack(anchor="w")
+        
+        saldo_label = ctk.CTkLabel(
+            resumen_content,
+            text="$0.00",
+            font=("Segoe UI", 24, "bold"),
+            text_color="#2E7D32",
+            anchor="w"
+        )
+        saldo_label.pack(anchor="w", pady=(5, 0))
+        
+        # Función para calcular saldo automáticamente
+        def calcular_saldo(*args):
+            try:
+                total = float(total_entry.get() or 0)
+                anticipo = float(anticipo_entry.get() or 0)
+                saldo = total - anticipo
+                saldo_label.configure(text=f"${saldo:,.2f}")
+                
+                if saldo < 0:
+                    saldo_label.configure(text_color="#E53935")
+                    resumen_frame.configure(fg_color="#FFEBEE")
+                elif saldo == 0:
+                    saldo_label.configure(text_color="#2E7D32")
+                    resumen_frame.configure(fg_color="#E8F5E9")
+                else:
+                    saldo_label.configure(text_color="#2E7D32")
+                    resumen_frame.configure(fg_color="#E8F5E9")
+            except:
+                saldo_label.configure(text="$0.00")
+        
+        # Vincular eventos para cálculo automático
+        total_entry.bind("<KeyRelease>", calcular_saldo)
+        anticipo_entry.bind("<KeyRelease>", calcular_saldo)
+        
+        # Botones
+        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        btn_frame.pack(fill="x")
+        
+        def guardar_apartado():
+            cliente = cliente_entry.get().strip()
+            telefono = telefono_entry.get().strip()
+            total = total_entry.get().strip()
+            anticipo = anticipo_entry.get().strip()
+            fecha = fecha_entry.get().strip()
+            descripcion = descripcion_entry.get("1.0", "end-1c").strip()
+            
+            if not cliente or not telefono or not total or not anticipo:
+                messagebox.showwarning("Datos incompletos", "Por favor completa todos los campos obligatorios")
+                return
+            
+            try:
+                from database.db import crear_conexion
+                from datetime import datetime
+                
+                total_float = float(total)
+                anticipo_float = float(anticipo)
+                saldo = total_float - anticipo_float
+                
+                if anticipo_float > total_float:
+                    messagebox.showwarning("Error", "El anticipo no puede ser mayor al total")
+                    return
+                
+                # Crear o buscar cliente
+                conn = crear_conexion()
+                cursor = conn.cursor()
+                
+                # Buscar si el cliente ya existe
+                cursor.execute("SELECT id_cliente FROM clientes WHERE telefono = %s", (telefono,))
+                cliente_existente = cursor.fetchone()
+                
+                if cliente_existente:
+                    id_cliente = cliente_existente[0]
+                    # Actualizar nombre si cambió
+                    cursor.execute("UPDATE clientes SET nombre = %s WHERE id_cliente = %s", (cliente, id_cliente))
+                else:
+                    # Crear nuevo cliente
+                    cursor.execute(
+                        "INSERT INTO clientes (nombre, telefono, correo) VALUES (%s, %s, %s)",
+                        (cliente, telefono, "")
+                    )
+                    id_cliente = cursor.lastrowid
+                
+                # Parsear fecha límite
+                fecha_limite = None
+                if fecha:
+                    try:
+                        fecha_limite = datetime.strptime(fecha, "%d/%m/%Y").date()
+                    except:
+                        try:
+                            fecha_limite = datetime.strptime(fecha, "%Y-%m-%d").date()
+                        except:
+                            pass
+                
+                # Crear apartado
+                cursor.execute("""
+                    INSERT INTO apartados (id_cliente, total, anticipo, saldo, fecha_limite, estado)
+                    VALUES (%s, %s, %s, %s, %s, 'Pendiente')
+                """, (id_cliente, total_float, anticipo_float, saldo, fecha_limite))
+                
+                id_apartado = cursor.lastrowid
+                
+                conn.commit()
+                conn.close()
+                
+                messagebox.showinfo(
+                    "Apartado Registrado",
+                    f"✅ Apartado #{id_apartado} registrado exitosamente:\n\n"
+                    f"Cliente: {cliente}\n"
+                    f"Total: ${total_float:,.2f}\n"
+                    f"Anticipo: ${anticipo_float:,.2f}\n"
+                    f"Saldo: ${saldo:,.2f}\n"
+                    f"Fecha límite: {fecha if fecha else 'No especificada'}"
+                )
+                apartado_window.destroy()
+                self.cargar_datos()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Total y anticipo deben ser números válidos")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo guardar el apartado:\n{str(e)}")
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="💾 Guardar Apartado",
+            fg_color="#F06292",
+            hover_color="#E91E63",
+            height=45,
+            font=("Segoe UI", 12, "bold"),
+            command=guardar_apartado
+        ).pack(side="left", expand=True, fill="x", padx=(0, 5))
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancelar",
+            fg_color="#E0E0E0",
+            text_color="#666666",
+            hover_color="#D0D0D0",
+            height=45,
+            font=("Segoe UI", 12),
+            command=apartado_window.destroy
+        ).pack(side="left", expand=True, fill="x", padx=(5, 0))
     
     def ver_apartado(self, apartado):
         """Ver detalles del apartado"""
@@ -504,7 +732,7 @@ class GestionApartadosView(ctk.CTk):
             info_frame = ctk.CTkFrame(main_frame, fg_color="#F5F5F5", corner_radius=10)
             info_frame.pack(fill="x", pady=(0, 15))
             
-            ctk.CTkLabel(info_frame, text="Cliente", font=("Segoe UI", 11), 
+            ctk.CTkLabel(info_frame, text="Cliente", font=("Segoe UI", 13), 
                         text_color="#666666").pack(anchor="w", padx=15, pady=(10, 2))
             ctk.CTkLabel(info_frame, text=apartado.get("cliente_nombre", "N/A"), 
                         font=("Segoe UI", 14, "bold"), text_color="#333333").pack(anchor="w", padx=15, pady=(0, 10))
@@ -542,7 +770,7 @@ class GestionApartadosView(ctk.CTk):
                     ctk.CTkLabel(
                         prod_frame,
                         text=f"{prod.get('nombre', 'N/A')} x{prod.get('cantidad', 0)}",
-                        font=("Segoe UI", 11),
+                        font=("Segoe UI", 13),
                         text_color="#333333"
                     ).pack(side="left", padx=10, pady=8)
                     
@@ -553,16 +781,31 @@ class GestionApartadosView(ctk.CTk):
                         text_color="#E91E63"
                     ).pack(side="right", padx=10, pady=8)
             
-            # Botón cerrar
+            # Botones de acción
+            buttons_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+            buttons_frame.pack(fill="x", pady=(10, 0))
+            
+            # Botón Editar
             ctk.CTkButton(
-                main_frame,
+                buttons_frame,
+                text="✏️ Editar",
+                fg_color="#2196F3",
+                hover_color="#1976D2",
+                height=40,
+                font=("Segoe UI", 12, "bold"),
+                command=lambda: self.editar_apartado(apartado, dialog)
+            ).pack(side="left", expand=True, fill="x", padx=(0, 5))
+            
+            # Botón Cerrar
+            ctk.CTkButton(
+                buttons_frame,
                 text="Cerrar",
                 fg_color="#E91E63",
                 hover_color="#C2185B",
                 height=40,
                 font=("Segoe UI", 12, "bold"),
                 command=dialog.destroy
-            ).pack(fill="x", pady=(10, 0))
+            ).pack(side="left", expand=True, fill="x", padx=(5, 0))
             
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo cargar el detalle: {str(e)}")
@@ -602,6 +845,268 @@ class GestionApartadosView(ctk.CTk):
                 messagebox.showerror("Error", f"Error al cancelar: {str(e)}")
 
 
-if __name__ == "__main__":
-    app = GestionApartadosView()
-    app.mainloop()
+
+
+    def editar_apartado(self, apartado, dialog_anterior=None):
+        """Editar apartado existente"""
+        # Cerrar el diálogo anterior si existe
+        if dialog_anterior:
+            dialog_anterior.destroy()
+        
+        # Crear ventana de edición
+        edit_window = ctk.CTkToplevel(self)
+        edit_window.title(f"Editar Apartado #{apartado['id_apartado']}")
+        edit_window.geometry("600x700")
+        edit_window.transient(self)
+        edit_window.grab_set()
+        
+        # Centrar ventana
+        edit_window.update_idletasks()
+        x = (edit_window.winfo_screenwidth() // 2) - (600 // 2)
+        y = (edit_window.winfo_screenheight() // 2) - (700 // 2)
+        edit_window.geometry(f"600x700+{x}+{y}")
+        
+        # Contenido
+        main_frame = ctk.CTkFrame(edit_window, fg_color="white")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(
+            main_frame,
+            text=f"✏️ Editar Apartado #{apartado['id_apartado']}",
+            font=("Segoe UI", 20, "bold"),
+            text_color="#333333"
+        ).pack(pady=(0, 20))
+        
+        # Formulario
+        form_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, pady=(0, 15))
+        
+        # Información del cliente
+        ctk.CTkLabel(
+            form_frame,
+            text="Información del Cliente",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#E91E63"
+        ).pack(anchor="w", pady=(0, 10))
+        
+        # Nombre del cliente
+        ctk.CTkLabel(form_frame, text="Nombre del Cliente:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        cliente_entry = ctk.CTkEntry(form_frame, placeholder_text="Nombre completo", height=40, font=("Segoe UI", 13))
+        cliente_entry.pack(fill="x", pady=(0, 15))
+        cliente_entry.insert(0, apartado.get("cliente_nombre", ""))
+        
+        # Teléfono
+        ctk.CTkLabel(form_frame, text="Teléfono:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        telefono_entry = ctk.CTkEntry(form_frame, placeholder_text="10 dígitos", height=40, font=("Segoe UI", 13))
+        telefono_entry.pack(fill="x", pady=(0, 15))
+        telefono_entry.insert(0, apartado.get("cliente_telefono", ""))
+        
+        # Información del apartado
+        ctk.CTkLabel(
+            form_frame,
+            text="Información del Apartado",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#E91E63"
+        ).pack(anchor="w", pady=(10, 10))
+        
+        # Total
+        ctk.CTkLabel(form_frame, text="Total del Apartado:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        total_entry = ctk.CTkEntry(form_frame, placeholder_text="$0.00", height=40, font=("Segoe UI", 13))
+        total_entry.pack(fill="x", pady=(0, 15))
+        total_entry.insert(0, str(apartado.get("total", 0)))
+        
+        # Anticipo
+        ctk.CTkLabel(form_frame, text="Anticipo:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        anticipo_entry = ctk.CTkEntry(form_frame, placeholder_text="$0.00", height=40, font=("Segoe UI", 13))
+        anticipo_entry.pack(fill="x", pady=(0, 15))
+        anticipo_entry.insert(0, str(apartado.get("anticipo", 0)))
+        
+        # Fecha límite con calendario
+        ctk.CTkLabel(form_frame, text="Fecha Límite:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        
+        fecha_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        fecha_frame.pack(fill="x", pady=(0, 15))
+        
+        fecha_entry = ctk.CTkEntry(fecha_frame, placeholder_text="DD/MM/AAAA", height=40, font=("Segoe UI", 13))
+        fecha_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        if apartado.get("fecha_limite"):
+            fecha_entry.insert(0, apartado.get("fecha_limite"))
+        
+        # Botón para abrir calendario
+        def abrir_calendario():
+            try:
+                from tkcalendar import Calendar
+                
+                cal_window = ctk.CTkToplevel(edit_window)
+                cal_window.title("Seleccionar Fecha")
+                cal_window.geometry("300x300")
+                cal_window.transient(edit_window)
+                cal_window.grab_set()
+                
+                # Centrar ventana
+                cal_window.update_idletasks()
+                x = (cal_window.winfo_screenwidth() // 2) - (300 // 2)
+                y = (cal_window.winfo_screenheight() // 2) - (300 // 2)
+                cal_window.geometry(f"300x300+{x}+{y}")
+                
+                # Calendario
+                cal = Calendar(cal_window, selectmode='day', date_pattern='dd/mm/yyyy')
+                cal.pack(fill="both", expand=True, padx=10, pady=10)
+                
+                def seleccionar_fecha():
+                    fecha_entry.delete(0, 'end')
+                    fecha_entry.insert(0, cal.get_date())
+                    cal_window.destroy()
+                
+                ctk.CTkButton(
+                    cal_window,
+                    text="Seleccionar",
+                    command=seleccionar_fecha,
+                    fg_color="#E91E63",
+                    hover_color="#C2185B"
+                ).pack(pady=10)
+                
+            except ImportError:
+                messagebox.showinfo("Calendario", "Instala tkcalendar: pip install tkcalendar")
+        
+        ctk.CTkButton(
+            fecha_frame,
+            text="📅",
+            width=50,
+            height=40,
+            fg_color="#E91E63",
+            hover_color="#C2185B",
+            font=("Segoe UI", 18),
+            command=abrir_calendario
+        ).pack(side="left")
+        
+        # Descripción
+        ctk.CTkLabel(form_frame, text="Descripción del Producto:", font=("Segoe UI", 13), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        descripcion_entry = ctk.CTkTextbox(form_frame, height=80, font=("Segoe UI", 13))
+        descripcion_entry.pack(fill="x", pady=(0, 15))
+        if apartado.get("descripcion"):
+            descripcion_entry.insert("1.0", apartado.get("descripcion"))
+        
+        # Resumen con cálculo automático
+        resumen_frame = ctk.CTkFrame(form_frame, fg_color="#E8F5E9", corner_radius=10)
+        resumen_frame.pack(fill="x", pady=(10, 0))
+        
+        resumen_content = ctk.CTkFrame(resumen_frame, fg_color="transparent")
+        resumen_content.pack(fill="x", padx=15, pady=12)
+        
+        ctk.CTkLabel(
+            resumen_content,
+            text="💰 Cuánta feria tiene que dar:",
+            font=("Segoe UI", 13, "bold"),
+            text_color="#2E7D32",
+            anchor="w"
+        ).pack(anchor="w")
+        
+        saldo_label = ctk.CTkLabel(
+            resumen_content,
+            text=f"${apartado.get('saldo', 0):.2f}",
+            font=("Segoe UI", 24, "bold"),
+            text_color="#2E7D32",
+            anchor="w"
+        )
+        saldo_label.pack(anchor="w", pady=(5, 0))
+        
+        # Función para calcular saldo automáticamente
+        def calcular_saldo(*args):
+            try:
+                total = float(total_entry.get() or 0)
+                anticipo = float(anticipo_entry.get() or 0)
+                saldo = total - anticipo
+                saldo_label.configure(text=f"${saldo:,.2f}")
+                
+                if saldo < 0:
+                    saldo_label.configure(text_color="#E53935")
+                    resumen_frame.configure(fg_color="#FFEBEE")
+                elif saldo == 0:
+                    saldo_label.configure(text_color="#2E7D32")
+                    resumen_frame.configure(fg_color="#E8F5E9")
+                else:
+                    saldo_label.configure(text_color="#2E7D32")
+                    resumen_frame.configure(fg_color="#E8F5E9")
+            except:
+                saldo_label.configure(text="$0.00")
+        
+        # Vincular eventos para cálculo automático
+        total_entry.bind("<KeyRelease>", calcular_saldo)
+        anticipo_entry.bind("<KeyRelease>", calcular_saldo)
+        
+        # Botones
+        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        btn_frame.pack(fill="x")
+        
+        def guardar_cambios():
+            cliente = cliente_entry.get().strip()
+            telefono = telefono_entry.get().strip()
+            total = total_entry.get().strip()
+            anticipo = anticipo_entry.get().strip()
+            fecha = fecha_entry.get().strip()
+            descripcion = descripcion_entry.get("1.0", "end-1c").strip()
+            
+            if not cliente or not telefono or not total or not anticipo:
+                messagebox.showwarning("Datos incompletos", "Por favor completa todos los campos obligatorios")
+                return
+            
+            try:
+                from database.db import crear_conexion
+                
+                total_float = float(total)
+                anticipo_float = float(anticipo)
+                saldo = total_float - anticipo_float
+                
+                if anticipo_float > total_float:
+                    messagebox.showwarning("Error", "El anticipo no puede ser mayor al total")
+                    return
+                
+                conn = crear_conexion()
+                cursor = conn.cursor()
+                
+                # Actualizar apartado
+                cursor.execute(
+                    """UPDATE apartados 
+                       SET total = %s, anticipo = %s, saldo = %s, fecha_limite = %s, descripcion = %s
+                       WHERE id_apartado = %s""",
+                    (total_float, anticipo_float, saldo, fecha, descripcion, apartado['id_apartado'])
+                )
+                
+                # Actualizar cliente
+                cursor.execute(
+                    """UPDATE clientes 
+                       SET nombre = %s, telefono = %s
+                       WHERE id_cliente = %s""",
+                    (cliente, telefono, apartado.get('id_cliente'))
+                )
+                
+                conn.commit()
+                conn.close()
+                
+                messagebox.showinfo("Éxito", f"✅ Apartado #{apartado['id_apartado']} actualizado correctamente")
+                edit_window.destroy()
+                self.cargar_datos()
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo actualizar el apartado:\n{str(e)}")
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="💾 Guardar Cambios",
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            height=45,
+            font=("Segoe UI", 13, "bold"),
+            command=guardar_cambios
+        ).pack(side="left", expand=True, fill="x", padx=(0, 5))
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancelar",
+            fg_color="#757575",
+            hover_color="#616161",
+            height=45,
+            font=("Segoe UI", 13, "bold"),
+            command=edit_window.destroy
+        ).pack(side="left", expand=True, fill="x", padx=(5, 0))

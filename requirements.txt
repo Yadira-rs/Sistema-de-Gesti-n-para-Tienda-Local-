@@ -1,4 +1,4 @@
+customtkinter
 mysql-connector-python
 Pillow
-twilio
-customtkinter
+openpyxl

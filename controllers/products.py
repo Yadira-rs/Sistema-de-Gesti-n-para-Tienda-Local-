@@ -236,3 +236,22 @@ def generar_codigo_barras(id_categoria, id_producto):
     producto = str(id_producto).zfill(6)  # 6 dígitos
     control = str(random.randint(0, 99)).zfill(2)  # 2 dígitos de control
     return f"{prefijo}{categoria}{producto}{control}"
+
+def crear_producto_temporal(nombre, precio):
+    """Crear un producto temporal para ventas personalizadas"""
+    conn = crear_conexion()
+    cur = conn.cursor()
+    try:
+        # Insertar producto temporal con stock 0 (no afecta inventario)
+        cur.execute(
+            "INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (%s, %s, %s, %s)",
+            (nombre, "Producto personalizado - Venta única", precio, 0)
+        )
+        id_producto = cur.lastrowid
+        conn.commit()
+        conn.close()
+        return id_producto
+    except Exception as e:
+        print(f"Error al crear producto temporal: {e}")
+        conn.close()
+        return None

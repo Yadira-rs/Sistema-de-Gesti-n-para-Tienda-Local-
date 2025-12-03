@@ -71,11 +71,18 @@ def finalizar_venta(usuario_id=None, metodo="Efectivo", descuento_porcentaje=0):
     descuento_monto = subtotal * (descuento_porcentaje / 100)
     total = subtotal - descuento_monto
     
-    # Insertar venta con descuento
-    cur.execute(
-        "INSERT INTO ventas (id_cliente, subtotal, descuento_porcentaje, descuento_monto, total, metodo_pago) VALUES (%s, %s, %s, %s, %s, %s)", 
-        (None, subtotal, descuento_porcentaje, descuento_monto, total, metodo)
-    )
+    # Insertar venta con descuento y usuario
+    try:
+        cur.execute(
+            "INSERT INTO ventas (id_cliente, id_usuario, subtotal, descuento_porcentaje, descuento_monto, total, metodo_pago) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+            (None, usuario_id, subtotal, descuento_porcentaje, descuento_monto, total, metodo)
+        )
+    except Exception:
+        # Si la columna id_usuario no existe aún, usar la versión anterior
+        cur.execute(
+            "INSERT INTO ventas (id_cliente, subtotal, descuento_porcentaje, descuento_monto, total, metodo_pago) VALUES (%s, %s, %s, %s, %s, %s)", 
+            (None, subtotal, descuento_porcentaje, descuento_monto, total, metodo)
+        )
     id_venta = cur.lastrowid
     
     for item in carrito:
@@ -88,6 +95,23 @@ def finalizar_venta(usuario_id=None, metodo="Efectivo", descuento_porcentaje=0):
             "UPDATE productos SET stock = stock - %s WHERE id_producto=%s",
             (item["cantidad"], item["id_producto"])
         )
+    
+    # Si el método de pago es Crédito, crear registro en tabla creditos
+    if metodo == "Crédito":
+        from datetime import datetime, timedelta
+        plazo_dias = 30  # Plazo por defecto
+        fecha_vencimiento = (datetime.now() + timedelta(days=plazo_dias)).date()
+        
+        try:
+            cur.execute(
+                """INSERT INTO creditos (id_venta, id_cliente, monto_total, saldo_pendiente, 
+                   plazo_dias, fecha_vencimiento, estado) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (id_venta, None, total, total, plazo_dias, fecha_vencimiento, 'Activo')
+            )
+        except Exception as e:
+            print(f"Nota: No se pudo crear el crédito (tabla puede no existir): {e}")
+    
     conn.commit()
     conn.close()
     sale_items = list(carrito)
