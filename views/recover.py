@@ -69,57 +69,49 @@ class RecoverWindow(ctk.CTkToplevel):
         fields_frame = ctk.CTkFrame(panel, fg_color="transparent")
         fields_frame.pack(fill="x", padx=50, pady=(30, 0))
         
+        # Mensaje informativo
+        info_frame = ctk.CTkFrame(fields_frame, fg_color="#E3F2FD", corner_radius=15)
+        info_frame.pack(fill="x", pady=(0, 25))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text="ℹ️  Ingresa tu correo electrónico registrado\npara recuperar tu información de acceso",
+            font=("Segoe UI", 12),
+            text_color="#1976D2",
+            justify="center"
+        ).pack(padx=20, pady=15)
+        
         # Correo electrónico
         ctk.CTkLabel(
             fields_frame,
-            text="Ingresa tu correo electrónico",
-            font=("Segoe UI", 12),
-            text_color="#666666",
+            text="Correo Electrónico",
+            font=("Segoe UI", 13, "bold"),
+            text_color="#333333",
             anchor="w"
         ).pack(anchor="w", pady=(0, 8))
         
         self.email_entry = ctk.CTkEntry(
             fields_frame,
-            placeholder_text="tu@gmail.com",
-            height=50,
-            corner_radius=25,
-            border_width=0,
-            fg_color="#F5F5F5",
-            font=("Segoe UI", 13)
+            placeholder_text="ejemplo@gmail.com",
+            height=55,
+            corner_radius=15,
+            border_width=2,
+            border_color="#E0E0E0",
+            fg_color="white",
+            font=("Segoe UI", 14)
         )
-        self.email_entry.pack(fill="x", pady=(0, 20))
+        self.email_entry.pack(fill="x", pady=(0, 30))
         
-        # Código de verificación
-        ctk.CTkLabel(
-            fields_frame,
-            text="Ingresa el código que se envió a tu correo electrónico",
-            font=("Segoe UI", 12),
-            text_color="#666666",
-            anchor="w"
-        ).pack(anchor="w", pady=(0, 8))
-        
-        self.code_entry = ctk.CTkEntry(
-            fields_frame,
-            placeholder_text="••••••",
-            show="•",
-            height=50,
-            corner_radius=25,
-            border_width=0,
-            fg_color="#F5F5F5",
-            font=("Segoe UI", 13)
-        )
-        self.code_entry.pack(fill="x", pady=(0, 30))
-        
-        # Botón Iniciar Sesión (enviar código)
+        # Botón Recuperar Contraseña
         ctk.CTkButton(
             fields_frame,
-            text="Iniciar Sesión",
-            height=50,
-            corner_radius=25,
+            text="🔑  Recuperar Contraseña",
+            height=55,
+            corner_radius=15,
             fg_color="#E91E63",
             hover_color="#C2185B",
-            font=("Segoe UI", 14, "bold"),
-            command=self.verificar_codigo
+            font=("Segoe UI", 15, "bold"),
+            command=self.recuperar_contrasena
         ).pack(fill="x", pady=(0, 15))
         
         # Botón Regresar
@@ -134,17 +126,17 @@ class RecoverWindow(ctk.CTkToplevel):
             command=self.destroy
         ).pack(fill="x")
     
-    def verificar_codigo(self):
-        """Verificar código de recuperación"""
+    def recuperar_contrasena(self):
+        """Recuperar contraseña por correo electrónico"""
         email = self.email_entry.get().strip()
-        codigo = self.code_entry.get().strip()
         
         if not email:
             messagebox.showwarning("Campo vacío", "Por favor ingresa tu correo electrónico")
             return
         
-        if not codigo:
-            messagebox.showwarning("Campo vacío", "Por favor ingresa el código de verificación")
+        # Validar formato de email básico
+        if "@" not in email or "." not in email:
+            messagebox.showwarning("Email inválido", "Por favor ingresa un correo electrónico válido")
             return
         
         try:
@@ -152,29 +144,36 @@ class RecoverWindow(ctk.CTkToplevel):
             cur = conn.cursor(dictionary=True)
             
             # Buscar usuario por email
-            cur.execute("SELECT * FROM usuarios WHERE email = %s", (email,))
+            cur.execute("SELECT * FROM usuarios WHERE email = %s OR correo = %s", (email, email))
             usuario = cur.fetchone()
             
             if not usuario:
-                messagebox.showerror("Error", "No se encontró un usuario con ese correo electrónico")
+                messagebox.showerror(
+                    "Usuario no encontrado", 
+                    "No se encontró ningún usuario registrado con ese correo electrónico.\n\n"
+                    "Verifica que el correo sea correcto o contacta al administrador."
+                )
                 conn.close()
                 return
             
-            # Mostrar información de acceso incluyendo el correo
+            # Mostrar información de acceso de forma clara
             messagebox.showinfo(
-                "Información de Acceso Recuperada",
-                f"📧 Correo: {usuario.get('email')}\n"
-                f"👤 Usuario: {usuario.get('usuario')}\n"
-                f"🔑 Contraseña: {usuario.get('contraseña')}\n\n"
-                f"💡 Usa tu correo o usuario para iniciar sesión.\n"
-                f"⚠️ Por seguridad, cambia tu contraseña después de iniciar sesión."
+                "✅ Información de Acceso Recuperada",
+                f"Se encontró tu cuenta:\n\n"
+                f"📧 Correo: {usuario.get('email') or usuario.get('correo')}\n"
+                f"👤 Usuario: {usuario.get('usuario') or usuario.get('nombre_completo')}\n"
+                f"🔑 Contraseña: {usuario.get('contraseña')}\n"
+                f"👔 Rol: {usuario.get('rol')}\n\n"
+                f"💡 Puedes usar tu correo o usuario para iniciar sesión.\n\n"
+                f"⚠️ Por seguridad, te recomendamos cambiar tu contraseña\n"
+                f"después de iniciar sesión desde tu perfil."
             )
             
             conn.close()
             self.destroy()
             
         except Exception as e:
-            messagebox.showerror("Error", f"Error al recuperar contraseña: {str(e)}")
+            messagebox.showerror("Error", f"Error al recuperar contraseña:\n{str(e)}")
 
 
 if __name__ == "__main__":

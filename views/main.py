@@ -41,63 +41,121 @@ class MainApp(tk.Tk):
     # -----------------------------------------------------
     def create_menu(self):
         """Crear menú de navegación"""
+        # Diccionario para guardar referencias a los botones
+        self.menu_buttons = {}
+        self.current_view = None
+        
+        # Verificar si es administrador
+        rol = self.user.get("rol", "")
+        email = self.user.get("email", "").lower()
+        print("\n" + "="*50)
+        print(f"DEBUG - Información del usuario:")
+        print(f"Usuario: {self.user.get('nombre', 'Desconocido')}")
+        print(f"Email: {email}")
+        print(f"Rol: '{rol}'")
+        
+        # Solo el correo de administrador específico puede ser admin
+        es_admin = False
+        if rol and email == "janet.rb00@gmail.com":
+            rol_lower = str(rol).strip().lower()
+            print(f"Rol (en minúsculas): '{rol_lower}'")
+            es_admin = "admin" in rol_lower
+        
+        print(f"¿Es administrador? {es_admin}")
+        print("="*50 + "\n")
+        
         # Menú base para todos
         menu_items = [
             ("📊", "Dashboard", DashboardView),
             ("🛒", "Punto de Venta", VentasView),
-            ("☑️", "Apartado", GestionApartadosView),
+            ("📝", "Apartado", GestionApartadosView),
             ("📦", "Productos", ProductsView),
-            ("👥", "Ventas", HistorialVentasView),
+            ("📋", "Ventas", HistorialVentasView),
             ("💳", "Créditos", GestionCreditosView),
         ]
         
-        # Solo agregar "Usuarios" si es Administrador
-        rol = self.user.get("rol", "")
-        if rol in ["Administrador", "Admin", "administrador", "admin"]:
-            menu_items.append(("👤", "Usuarios", UsersView))
+        # Agregar menú de administración si es administrador
+        if es_admin:
+            menu_items.append(("👥", "Usuarios", UsersView))
+            print("DEBUG - Opción 'Usuarios' agregada al menú")  # Para depuración
 
         for icon, text, view in menu_items:
             # Frame para cada botón
             btn_frame = tk.Frame(self.sidebar, bg="#FFFFFF", cursor="hand2")
-            btn_frame.pack(fill="x", padx=5, pady=2)
+            btn_frame.pack(fill="x", padx=8, pady=3)
             
             # Crear botón personalizado
-            btn = tk.Frame(btn_frame, bg="#FFFFFF", height=45)
+            btn = tk.Frame(btn_frame, bg="#FFFFFF", height=35)
             btn.pack(fill="x")
             btn.pack_propagate(False)
             
+            # Contenedor para centrar verticalmente
+            content_frame = tk.Frame(btn, bg="#FFFFFF")
+            content_frame.place(relx=0, rely=0.5, anchor="w", relwidth=1)
+            
+            # Configuración de columnas
+            content_frame.columnconfigure(0, weight=0, minsize=40)  # Para el ícono
+            content_frame.columnconfigure(1, weight=1)  # Para el texto
+            
             # Icono
             icon_label = tk.Label(
-                btn,
+                content_frame,
                 text=icon,
-                font=("Segoe UI", 16),
+                font=("Segoe UI", 14, "bold"),
                 bg="#FFFFFF",
                 fg="#333333",
-                width=3
+                width=2,
+                anchor="center"
             )
-            icon_label.pack(side="left", padx=(15, 5))
-            
-            # Texto
+            icon_label.grid(row=0, column=0, padx=(10, 5), sticky="")
+
+            # Texto al lado del icono
             text_label = tk.Label(
-                btn,
+                content_frame,
                 text=text,
                 font=("Segoe UI", 12),
                 bg="#FFFFFF",
                 fg="#333333",
-                anchor="w"
+                anchor="w",
+                justify="left",
+                wraplength=180,
+                padx=5
             )
-            text_label.pack(side="left", fill="x", expand=True)
+            text_label.grid(row=0, column=1, sticky="w")
+            content_frame.grid_columnconfigure(1, weight=1)
+            
+            # Guardar referencia al botón
+            self.menu_buttons[view] = {
+                'frame': btn,
+                'content': content_frame,
+                'icon': icon_label,
+                'text': text_label
+            }
             
             # Eventos de hover y click
-            def on_enter(e, frame=btn):
-                frame.configure(bg="#F8BBD0")
-                for child in frame.winfo_children():
-                    child.configure(bg="#F8BBD0")
+            def on_enter(e, frame=btn, content=content_frame, v=view):
+                if self.current_view != v:
+                    hover_bg = "#F48FB1"
+                    frame.configure(bg=hover_bg)
+                    content.configure(bg=hover_bg)
+                    for child in content.winfo_children():
+                        # Keep icon visible; only change text color on active
+                        try:
+                            child.configure(bg=hover_bg)
+                        except Exception:
+                            pass
             
-            def on_leave(e, frame=btn):
-                frame.configure(bg="#FFFFFF")
-                for child in frame.winfo_children():
-                    child.configure(bg="#FFFFFF")
+            def on_leave(e, frame=btn, content=content_frame, v=view):
+                if self.current_view != v:
+                    frame.configure(bg="#FFFFFF")
+                    content.configure(bg="#FFFFFF")
+                    for child in content.winfo_children():
+                        try:
+                            child.configure(bg="#FFFFFF")
+                            # restore default fg for text/icon
+                            child.configure(fg="#333333")
+                        except Exception:
+                            pass
             
             def on_click(e, v=view):
                 self.show_view(v)
@@ -105,6 +163,9 @@ class MainApp(tk.Tk):
             btn.bind("<Enter>", on_enter)
             btn.bind("<Leave>", on_leave)
             btn.bind("<Button-1>", on_click)
+            content_frame.bind("<Enter>", on_enter)
+            content_frame.bind("<Leave>", on_leave)
+            content_frame.bind("<Button-1>", on_click)
             icon_label.bind("<Enter>", on_enter)
             icon_label.bind("<Leave>", on_leave)
             icon_label.bind("<Button-1>", on_click)
@@ -117,6 +178,9 @@ class MainApp(tk.Tk):
         """Mostrar vista en el panel de contenido"""
         for widget in self.content.winfo_children():
             widget.destroy()
+        
+        # Actualizar el botón activo
+        self.update_active_button(view_class)
         
         try:
             view = view_class(self.content, self.user)
@@ -164,203 +228,147 @@ class MainApp(tk.Tk):
             print("="*60 + "\n")
 
     def create_user_profile(self):
-        """Crear perfil de usuario al final del menú - Diseño minimalista"""
+        """Crear perfil de usuario al final del menú - Diseño horizontal compacto"""
         # Espaciador para empujar el perfil al fondo
         spacer = tk.Frame(self.sidebar, bg="#FFFFFF")
         spacer.pack(side="bottom", fill="both", expand=True)
-        
-        # Tarjeta de información del usuario con fondo rosa suave
-        profile_card = tk.Frame(
-            self.sidebar, 
-            bg="#FCE4EC",
-            height=180,
-            cursor="hand2"
-        )
-        profile_card.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
-        profile_card.pack_propagate(False)
-        
-        # Contenedor interno con padding
-        card_content = tk.Frame(profile_card, bg="#FCE4EC")
-        card_content.pack(fill="both", expand=True, padx=15, pady=15)
         
         # Obtener datos del usuario
         nombre_completo = self.user.get("nombre_completo", self.user.get("usuario", "Administrador"))
         inicial = nombre_completo[0].upper() if nombre_completo else "A"
         rol = self.user.get("rol", "Admin")
-        email = self.user.get("email", "admin@boutique.com")
         
-        # Color según rol
-        if rol == "Administrador" or rol == "Admin":
+        # Color según rol (flexible para variaciones)
+        rol_lower = rol.lower()
+        if "admin" in rol_lower:
             avatar_color = "#E91E63"
-        elif rol == "Vendedor":
-            avatar_color = "#AB47BC"
-        elif rol == "Cajero":
-            avatar_color = "#42A5F5"
+            bg_color = "#FCE4EC"
+        elif "vendedor" in rol_lower:
+            avatar_color = "#9C27B0"
+            bg_color = "#F3E5F5"
         else:
-            avatar_color = "#66BB6A"
+            avatar_color = "#4CAF50"
+            bg_color = "#E8F5E9"
         
-        # Avatar circular grande
-        avatar_frame = tk.Frame(
-            card_content,
-            bg="#F8BBD0",
-            width=70,
-            height=70
+        # Botón de perfil horizontal compacto
+        profile_btn = tk.Frame(
+            self.sidebar,
+            bg=bg_color,
+            height=75,
+            cursor="hand2"
         )
-        avatar_frame.pack(pady=(0, 12))
-        avatar_frame.pack_propagate(False)
+        profile_btn.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
+        profile_btn.pack_propagate(False)
         
-        avatar_label = tk.Label(
-            avatar_frame,
+        # Contenedor interno centrado
+        btn_content = tk.Frame(profile_btn, bg=bg_color)
+        btn_content.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.9)
+        
+        # Avatar circular a la izquierda
+        avatar_canvas = tk.Canvas(
+            btn_content,
+            width=50,
+            height=50,
+            bg=bg_color,
+            highlightthickness=0
+        )
+        avatar_canvas.pack(side="left", padx=(0, 12))
+        
+        # Dibujar círculo
+        avatar_canvas.create_oval(2, 2, 48, 48, fill=avatar_color, outline="")
+        
+        # Texto centrado en el círculo
+        avatar_canvas.create_text(
+            25, 25,
             text=inicial,
-            font=("Segoe UI", 32, "bold"),
-            bg="#F8BBD0",
-            fg=avatar_color
+            font=("Segoe UI", 20, "bold"),
+            fill="white"
         )
-        avatar_label.place(relx=0.5, rely=0.5, anchor="center")
         
-        # Nombre completo
+        # Información del usuario a la derecha
+        info_frame = tk.Frame(btn_content, bg=bg_color)
+        info_frame.pack(side="left", fill="both", expand=True)
+        
+        # Nombre (ajustar longitud según ancho disponible)
+        nombre_mostrar = nombre_completo
+        if len(nombre_completo) > 16:
+            nombre_mostrar = nombre_completo[:13] + "..."
+        
         nombre_label = tk.Label(
-            card_content,
-            text=nombre_completo if len(nombre_completo) <= 20 else nombre_completo[:17] + "...",
-            font=("Segoe UI", 13, "bold"),
-            bg="#FCE4EC",
-            fg=avatar_color
-        )
-        nombre_label.pack(pady=(0, 5))
-        
-        # Badge de rol con icono
-        rol_container = tk.Frame(card_content, bg="#FCE4EC")
-        rol_container.pack(pady=(0, 8))
-        
-        rol_icon = tk.Label(
-            rol_container,
-            text="🛡️",
-            font=("Segoe UI", 12),
-            bg="#FCE4EC",
-            fg=avatar_color
-        )
-        rol_icon.pack(side="left", padx=(0, 5))
-        
-        rol_label = tk.Label(
-            rol_container,
-            text=rol,
+            info_frame,
+            text=nombre_mostrar,
             font=("Segoe UI", 11, "bold"),
-            bg="#FCE4EC",
-            fg=avatar_color
+            bg=bg_color,
+            fg="#333333",
+            anchor="w"
         )
-        rol_label.pack(side="left")
+        nombre_label.pack(anchor="w", pady=(2, 0))
         
-        # Email
-        email_label = tk.Label(
-            card_content,
-            text=email if len(email) <= 24 else email[:21] + "...",
+        # Rol
+        rol_label = tk.Label(
+            info_frame,
+            text=f" {rol}",
             font=("Segoe UI", 9),
-            bg="#FCE4EC",
-            fg=avatar_color
+            bg=bg_color,
+            fg=avatar_color,
+            anchor="w"
         )
-        email_label.pack()
+        rol_label.pack(anchor="w", pady=(0, 2))
         
-        # Hacer clickeable toda la tarjeta para abrir perfil
+        # Hacer clickeable
         def abrir_perfil(event=None):
             self.mostrar_perfil()
         
-        # Bind a todos los elementos
-        for widget in [profile_card, card_content, avatar_frame, avatar_label, 
-                       nombre_label, rol_container, rol_icon, rol_label, email_label]:
+        for widget in [profile_btn, btn_content, avatar_canvas, 
+                       info_frame, nombre_label, rol_label]:
             widget.bind("<Button-1>", abrir_perfil)
         
         # Efecto hover
         def on_enter(e):
-            profile_card.configure(bg="#F8BBD0")
-            card_content.configure(bg="#F8BBD0")
-            avatar_label.configure(bg="#F8BBD0")
-            nombre_label.configure(bg="#F8BBD0")
-            rol_container.configure(bg="#F8BBD0")
-            rol_icon.configure(bg="#F8BBD0")
-            rol_label.configure(bg="#F8BBD0")
-            email_label.configure(bg="#F8BBD0")
+            hover_color = {
+                "#FCE4EC": "#F8BBD0",
+                "#F3E5F5": "#E1BEE7",
+                "#E3F2FD": "#BBDEFB",
+                "#E8F5E9": "#C8E6C9"
+            }.get(bg_color, "#F8BBD0")
+            
+            profile_btn.configure(bg=hover_color)
+            btn_content.configure(bg=hover_color)
+            avatar_canvas.configure(bg=hover_color)
+            info_frame.configure(bg=hover_color)
+            nombre_label.configure(bg=hover_color)
+            rol_label.configure(bg=hover_color)
         
         def on_leave(e):
-            profile_card.configure(bg="#FCE4EC")
-            card_content.configure(bg="#FCE4EC")
-            avatar_label.configure(bg="#F8BBD0")
-            nombre_label.configure(bg="#FCE4EC")
-            rol_container.configure(bg="#FCE4EC")
-            rol_icon.configure(bg="#FCE4EC")
-            rol_label.configure(bg="#FCE4EC")
-            email_label.configure(bg="#FCE4EC")
+            profile_btn.configure(bg=bg_color)
+            btn_content.configure(bg=bg_color)
+            avatar_canvas.configure(bg=bg_color)
+            info_frame.configure(bg=bg_color)
+            nombre_label.configure(bg=bg_color)
+            rol_label.configure(bg=bg_color)
         
-        # Bind hover a todos los elementos
-        for widget in [profile_card, card_content, avatar_frame, avatar_label, 
-                       nombre_label, rol_container, rol_icon, rol_label, email_label]:
+        for widget in [profile_btn, btn_content, avatar_canvas, 
+                       info_frame, nombre_label, rol_label]:
             widget.bind("<Enter>", on_enter)
             widget.bind("<Leave>", on_leave)
         
-        # Botón de cerrar sesión - Diseño minimalista
-        logout_btn = tk.Frame(
-            self.sidebar, 
-            bg="white",
-            height=60,
-            cursor="hand2",
-            relief="solid",
-            borderwidth=2,
-            highlightbackground="#E0E0E0",
-            highlightthickness=2
-        )
-        logout_btn.pack(side="bottom", fill="x", padx=10, pady=(0, 10))
-        logout_btn.pack_propagate(False)
+        # Botón de cerrar sesión compacto
+        import customtkinter as ctk
         
-        logout_content = tk.Frame(logout_btn, bg="white")
-        logout_content.pack(expand=True)
-        
-        logout_icon = tk.Label(
-            logout_content,
-            text="➜",
-            font=("Segoe UI", 20),
-            bg="white",
-            fg="#546E7A"
-        )
-        logout_icon.pack(side="left", padx=(0, 10))
-        
-        logout_text = tk.Label(
-            logout_content,
-            text="Cerrar Sesión",
+        logout_btn = ctk.CTkButton(
+            self.sidebar,
+            text="🚪  Cerrar Sesión",
+            height=50,
+            corner_radius=15,
+            fg_color="#FFFFFF",
+            text_color="#E53935",
+            hover_color="#FFEBEE",
+            border_width=2,
+            border_color="#FFCDD2",
             font=("Segoe UI", 13, "bold"),
-            bg="white",
-            fg="#546E7A"
+            command=self.cerrar_sesion
         )
-        logout_text.pack(side="left")
-        
-        # Hacer clickeable
-        def cerrar_sesion_click(event=None):
-            self.cerrar_sesion()
-        
-        logout_btn.bind("<Button-1>", cerrar_sesion_click)
-        logout_content.bind("<Button-1>", cerrar_sesion_click)
-        logout_icon.bind("<Button-1>", cerrar_sesion_click)
-        logout_text.bind("<Button-1>", cerrar_sesion_click)
-        
-        # Efecto hover
-        def logout_on_enter(e):
-            logout_btn.configure(bg="#ECEFF1")
-            logout_content.configure(bg="#ECEFF1")
-            logout_icon.configure(bg="#ECEFF1")
-            logout_text.configure(bg="#ECEFF1")
-        
-        def logout_on_leave(e):
-            logout_btn.configure(bg="white")
-            logout_content.configure(bg="white")
-            logout_icon.configure(bg="white")
-            logout_text.configure(bg="white")
-        
-        logout_btn.bind("<Enter>", logout_on_enter)
-        logout_btn.bind("<Leave>", logout_on_leave)
-        logout_content.bind("<Enter>", logout_on_enter)
-        logout_content.bind("<Leave>", logout_on_leave)
-        logout_icon.bind("<Enter>", logout_on_enter)
-        logout_icon.bind("<Leave>", logout_on_leave)
-        logout_text.bind("<Enter>", logout_on_enter)
-        logout_text.bind("<Leave>", logout_on_leave)
+        logout_btn.pack(side="bottom", fill="x", padx=10, pady=(15, 10))
     
     def mostrar_perfil(self):
         """Mostrar ventana de perfil del usuario"""
@@ -421,6 +429,24 @@ class MainApp(tk.Tk):
         style.map("ChipSelected.TButton", background=[["active", "#99233D"]])
         style.configure("Pay.TRadiobutton", background="#FFFFFF")
 
+    def update_active_button(self, view_class):
+        """Actualizar el botón activo en el menú"""
+        # Resetear todos los botones
+        for view, widgets in self.menu_buttons.items():
+            widgets['frame'].configure(bg="#FFFFFF")
+            widgets['content'].configure(bg="#FFFFFF")
+            widgets['icon'].configure(bg="#FFFFFF", fg="#333333")
+            widgets['text'].configure(bg="#FFFFFF", fg="#333333", font=("Segoe UI", 12))
+        
+        # Resaltar el botón activo
+        if view_class in self.menu_buttons:
+            self.current_view = view_class
+            widgets = self.menu_buttons[view_class]
+            widgets['frame'].configure(bg="#E91E63")
+            widgets['content'].configure(bg="#E91E63")
+            widgets['icon'].configure(bg="#E91E63", fg="white")
+            widgets['text'].configure(bg="#E91E63", fg="white", font=("Segoe UI", 12, "bold"))
+    
     def create_brand(self):
         """Crear header del menú con logo y título"""
         top = tk.Frame(self.sidebar, bg="#FFFFFF")
@@ -433,11 +459,13 @@ class MainApp(tk.Tk):
         
         # Intentar cargar el logo desde diferentes ubicaciones
         logo_paths = [
+            "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg",
             "logo.png",
             "assets/logo.png",
             "images/logo.png",
             os.path.join(os.path.dirname(os.path.dirname(__file__)), "logo.png"),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "WhatsApp Image 2025-11-20 at 10.25.27 AM.jpeg")
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "WhatsApp Image 2025-11-20 at 10.25.27 AM.jpeg"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg")
         ]
         
         logo_loaded = False
@@ -456,16 +484,16 @@ class MainApp(tk.Tk):
         if not logo_loaded:
             tk.Label(logo_frame, text="🚲", font=("Segoe UI", 30), bg="#FFFFFF", fg="#E91E63").pack(expand=True)
         
-        # Título
+        # Título (centrado)
         title_frame = tk.Frame(top, bg="#FFFFFF")
         title_frame.pack(side="left", fill="both", expand=True)
-        
-        # Janet Rosa Bici con Rosa en color rosa
+
+        # Center the brand: logo + text stacked and centered
         title_text = tk.Frame(title_frame, bg="#FFFFFF")
-        title_text.pack(anchor="w")
-        
-        tk.Label(title_text, text="Janet ", font=("Brush Script MT", 16), bg="#FFFFFF", fg="#333333").pack(side="left")
-        tk.Label(title_text, text="Rosa ", font=("Brush Script MT", 16), bg="#FFFFFF", fg="#E91E63").pack(side="left")
-        tk.Label(title_text, text="Bici", font=("Brush Script MT", 16), bg="#FFFFFF", fg="#333333").pack(side="left")
-        
-        tk.Label(title_frame, text="Sistema de ventas", font=("Segoe UI", 9), bg="#FFFFFF", fg="#666666").pack(anchor="w")
+        title_text.pack(anchor="center")
+
+        tk.Label(title_text, text="Janet ", font=("Brush Script MT", 18), bg="#FFFFFF", fg="#333333").pack(side="left")
+        tk.Label(title_text, text="Rosa ", font=("Brush Script MT", 18), bg="#FFFFFF", fg="#E91E63").pack(side="left")
+        tk.Label(title_text, text="Bici", font=("Brush Script MT", 18), bg="#FFFFFF", fg="#333333").pack(side="left")
+
+        tk.Label(title_frame, text="Sistema de ventas", font=("Segoe UI", 9), bg="#FFFFFF", fg="#666666").pack(anchor="center", pady=(2,0))

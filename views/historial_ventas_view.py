@@ -205,9 +205,13 @@ class HistorialVentasView(ctk.CTkFrame):
             text_color="#E91E63"
         ).pack(side="right")
         
+        # Frame para botones
+        btn_frame = ctk.CTkFrame(header_content, fg_color="transparent")
+        btn_frame.pack(side="right")
+        
         # Botón ver ticket
         ctk.CTkButton(
-            header_content,
+            btn_frame,
             text="🎫 Ver Ticket",
             fg_color="#9C27B0",
             hover_color="#7B1FA2",
@@ -216,7 +220,20 @@ class HistorialVentasView(ctk.CTkFrame):
             font=("Segoe UI", 10, "bold"),
             corner_radius=8,
             command=lambda v=venta: self.ver_ticket_venta(v)
-        ).pack(side="right", padx=(0, 10))
+        ).pack(side="left", padx=(0, 5))
+        
+        # Botón generar factura
+        ctk.CTkButton(
+            btn_frame,
+            text="📄 Factura",
+            fg_color="#2196F3",
+            hover_color="#1976D2",
+            width=90,
+            height=32,
+            font=("Segoe UI", 10, "bold"),
+            corner_radius=8,
+            command=lambda v=venta: self.generar_factura(v)
+        ).pack(side="left")
         
         # Método de pago
         metodo = venta.get("metodo_pago", "Efectivo")
@@ -373,6 +390,56 @@ class HistorialVentasView(ctk.CTkFrame):
         
         self.mostrar_ventas(ventas_filtradas)
     
+    def generar_factura(self, venta):
+        """Generar factura de una venta"""
+        try:
+            # Obtener detalles de la venta
+            detalles = self.obtener_detalle_venta(venta.get("id_venta"))
+            
+            # Preparar datos para la factura
+            items = []
+            subtotal = 0
+            
+            for detalle in detalles:
+                cantidad = detalle.get('cantidad', 1)
+                precio_unitario = float(detalle.get('precio_unitario', 0))
+                importe = cantidad * precio_unitario
+                subtotal += importe
+                
+                items.append({
+                    'descripcion': detalle.get('nombre_producto', 'Producto'),
+                    'cantidad': cantidad,
+                    'precio': precio_unitario,
+                    'importe': importe
+                })
+            
+            iva = subtotal * 0.16  # 16% de IVA
+            total = subtotal + iva
+            
+            factura_data = {
+                'folio': f"FAC-{venta.get('id_venta')}",
+                'fecha': venta.get('fecha', datetime.now()).strftime("%d/%m/%Y %H:%M"),
+                'productos': items,
+                'subtotal': subtotal,
+                'iva': iva,
+                'total': total,
+                'pago': total,  # Asumimos que se pagó el total exacto
+                'cambio': 0,
+                'metodo_pago': venta.get('metodo_pago', 'Efectivo'),
+                'descuento': 0
+            }
+            
+            # Mostrar factura (usamos el mismo visor de tickets pero con formato de factura)
+            from views.ticket_venta_view import TicketVentaView
+            factura = TicketVentaView(self, factura_data)
+            factura.title("Factura Electrónica")
+            
+            # Opcional: Aquí podrías agregar lógica para guardar o imprimir la factura
+            # como un PDF o generar un archivo XML para facturación electrónica
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar la factura: {str(e)}")
+    
     def ver_ticket_venta(self, venta):
         """Ver ticket de una venta del historial"""
         try:
@@ -383,17 +450,28 @@ class HistorialVentasView(ctk.CTkFrame):
             items = []
             for detalle in detalles:
                 items.append({
-                    'nombre': detalle.get('nombre_producto', 'Producto'),
+                    'descripcion': detalle.get('nombre_producto', 'Producto'),
                     'cantidad': detalle.get('cantidad', 1),
-                    'precio': float(detalle.get('precio_unitario', 0))
+                    'precio': float(detalle.get('precio_unitario', 0)),
+                    'importe': float(detalle.get('precio_unitario', 0)) * detalle.get('cantidad', 1)
                 })
             
+            # Calcular totales
+            subtotal = sum(item['importe'] for item in items)
+            iva = subtotal * 0.16  # 16% de IVA
+            total = subtotal + iva
+            
             ticket_data = {
-                'id_venta': venta.get('id_venta'),
-                'total': float(venta.get('total', 0)),
-                'metodo': venta.get('metodo_pago', 'Efectivo'),
-                'descuento': 0,  # Calcular si está guardado
-                'items': items
+                'folio': venta.get('id_venta'),
+                'fecha': venta.get('fecha', datetime.now()).strftime("%d/%m/%Y %H:%M"),
+                'productos': items,
+                'subtotal': subtotal,
+                'iva': iva,
+                'total': total,
+                'pago': total,  # Asumimos que se pagó el total exacto
+                'cambio': 0,
+                'metodo_pago': venta.get('metodo_pago', 'Efectivo'),
+                'descuento': 0
             }
             
             # Mostrar ticket
@@ -402,3 +480,5 @@ class HistorialVentasView(ctk.CTkFrame):
             
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo mostrar el ticket:\n{str(e)}")
+
+

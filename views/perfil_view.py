@@ -11,124 +11,181 @@ class PerfilView(ctk.CTkFrame):
         self.crear_interfaz()
     
     def crear_interfaz(self):
-        # Título de la página
-        title_frame = ctk.CTkFrame(self, fg_color="transparent")
-        title_frame.pack(fill="x", padx=40, pady=(30, 20))
-        
-        ctk.CTkLabel(
-            title_frame,
-            text="Perfil",
-            font=("Segoe UI", 32, "bold"),
-            text_color="#2C2C2C",
-            anchor="w"
-        ).pack(anchor="w")
-        
-        # Contenedor principal con dos columnas
+        # Contenedor principal
         main_container = ctk.CTkFrame(self, fg_color="transparent")
-        main_container.pack(fill="both", expand=True, padx=40, pady=(0, 40))
+        main_container.pack(fill="both", expand=True, padx=50, pady=40)
         
         # Obtener color según rol
         rol = self.user.get("rol", "Admin")
         self.avatar_color = {
             'Administrador': '#E91E63',
-            'Vendedor': '#AB47BC',
-            'Cajero': '#42A5F5',
-            'Empleado': '#66BB6A'
+            'Vendedor': '#9C27B0',
+            'Cajero': '#2196F3',
+            'Empleado': '#4CAF50'
         }.get(rol, '#E91E63')
         
-        # Panel izquierdo - Formulario
-        left_panel = ctk.CTkFrame(main_container, fg_color="white", corner_radius=20)
-        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 20))
+        self.avatar_bg = {
+            'Administrador': '#FCE4EC',
+            'Vendedor': '#F3E5F5',
+            'Cajero': '#E3F2FD',
+            'Empleado': '#E8F5E9'
+        }.get(rol, '#FCE4EC')
+        
+        # Tarjeta de información del usuario (horizontal)
+        user_card = ctk.CTkFrame(main_container, fg_color=self.avatar_bg, corner_radius=30, height=200)
+        user_card.pack(fill="x", pady=(0, 30))
+        user_card.pack_propagate(False)
+        
+        # Contenedor horizontal para avatar + info
+        card_content = ctk.CTkFrame(user_card, fg_color="transparent")
+        card_content.pack(fill="both", expand=True, padx=50, pady=40)
+        
+        # Avatar circular a la izquierda con fondo más oscuro
+        avatar_outer = ctk.CTkFrame(
+            card_content,
+            fg_color="#F8BBD0",  # Rosa más oscuro
+            corner_radius=75,
+            width=150,
+            height=150
+        )
+        avatar_outer.pack(side="left", padx=(0, 40))
+        avatar_outer.pack_propagate(False)
+        
+        # Inicial del nombre con color verde
+        inicial = self.user.get("nombre_completo", "A")[0].upper()
+        
+        ctk.CTkLabel(
+            avatar_outer,
+            text=inicial,
+            font=("Segoe UI", 70, "bold"),
+            text_color="#66BB6A"  # Verde como en la imagen
+        ).pack(expand=True)
+        
+        # Información del usuario a la derecha
+        info_frame = ctk.CTkFrame(card_content, fg_color="transparent")
+        info_frame.pack(side="left", fill="both", expand=True)
+        
+        # Nombre del usuario
+        ctk.CTkLabel(
+            info_frame,
+            text=self.user.get("nombre_completo", "Usuario"),
+            font=("Segoe UI", 36, "bold"),
+            text_color=self.avatar_color,
+            anchor="w"
+        ).pack(anchor="w", pady=(0, 10))
+        
+        # Rol con icono
+        rol_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+        rol_frame.pack(anchor="w", pady=(0, 10))
+        
+        ctk.CTkLabel(
+            rol_frame,
+            text=f"🛡️  {rol}",
+            font=("Segoe UI", 20, "bold"),
+            text_color=self.avatar_color,
+            anchor="w"
+        ).pack(side="left")
+        
+        # Email
+        ctk.CTkLabel(
+            info_frame,
+            text=self.user.get("email", ""),
+            font=("Segoe UI", 18),
+            text_color=self.avatar_color,
+            anchor="w"
+        ).pack(anchor="w")
+        
+        # Panel de contenido con dos columnas
+        content_container = ctk.CTkFrame(main_container, fg_color="transparent")
+        content_container.pack(fill="both", expand=True)
+        
+        # Panel izquierdo - Formulario de edición
+        left_panel = ctk.CTkFrame(content_container, fg_color="white", corner_radius=25)
+        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 15))
         
         left_content = ctk.CTkFrame(left_panel, fg_color="transparent")
         left_content.pack(fill="both", expand=True, padx=40, pady=40)
         
-        # Avatar circular grande
-        avatar_frame = ctk.CTkFrame(
-            left_content,
-            fg_color="#F8BBD0",
-            corner_radius=80,
-            width=160,
-            height=160
-        )
-        avatar_frame.pack(pady=(0, 30))
-        avatar_frame.pack_propagate(False)
-        
-        # Inicial del nombre
-        inicial = self.user.get("nombre_completo", "A")[0].upper()
-        
-        ctk.CTkLabel(
-            avatar_frame,
-            text=inicial,
-            font=("Segoe UI", 72, "bold"),
-            text_color=self.avatar_color
-        ).pack(expand=True)
-        
-        # Campo Nombre
+        # Título del formulario
         ctk.CTkLabel(
             left_content,
-            text="Nombre",
-            font=("Segoe UI", 14, "bold"),
-            text_color="#2C2C2C",
+            text="✏️  Editar Información",
+            font=("Segoe UI", 22, "bold"),
+            text_color="#1A1A1A",
+            anchor="w"
+        ).pack(anchor="w", pady=(0, 25))
+        
+        # Campo Nombre con icono
+        nombre_frame = ctk.CTkFrame(left_content, fg_color="transparent")
+        nombre_frame.pack(fill="x", pady=(0, 18))
+        
+        ctk.CTkLabel(
+            nombre_frame,
+            text="👤  Nombre completo",
+            font=("Segoe UI", 13, "bold"),
+            text_color="#555555",
             anchor="w"
         ).pack(anchor="w", pady=(0, 8))
         
         self.nombre_entry = ctk.CTkEntry(
-            left_content,
-            height=50,
-            corner_radius=12,
-            border_width=2,
-            border_color="#E0E0E0",
-            font=("Segoe UI", 14),
-            fg_color="white",
-            text_color="#666666"
+            nombre_frame,
+            height=52,
+            corner_radius=15,
+            border_width=0,
+            font=("Segoe UI", 15),
+            fg_color="#F8F9FA",
+            text_color="#2C2C2C"
         )
-        self.nombre_entry.pack(fill="x", pady=(0, 20))
+        self.nombre_entry.pack(fill="x")
         self.nombre_entry.insert(0, self.user.get("nombre_completo", ""))
         
-        # Campo Correo electrónico
+        # Campo Email con icono
+        email_frame = ctk.CTkFrame(left_content, fg_color="transparent")
+        email_frame.pack(fill="x", pady=(0, 18))
+        
         ctk.CTkLabel(
-            left_content,
-            text="Correo electrónico",
-            font=("Segoe UI", 14, "bold"),
-            text_color="#2C2C2C",
+            email_frame,
+            text="📧  Correo electrónico",
+            font=("Segoe UI", 13, "bold"),
+            text_color="#555555",
             anchor="w"
         ).pack(anchor="w", pady=(0, 8))
         
         self.email_entry = ctk.CTkEntry(
-            left_content,
-            height=50,
-            corner_radius=12,
-            border_width=2,
-            border_color="#E0E0E0",
-            font=("Segoe UI", 14),
-            fg_color="white",
-            text_color="#666666"
+            email_frame,
+            height=52,
+            corner_radius=15,
+            border_width=0,
+            font=("Segoe UI", 15),
+            fg_color="#F8F9FA",
+            text_color="#2C2C2C"
         )
-        self.email_entry.pack(fill="x", pady=(0, 20))
+        self.email_entry.pack(fill="x")
         self.email_entry.insert(0, self.user.get("email", ""))
         
-        # Campo Contraseña
+        # Campo Contraseña con icono
+        password_frame = ctk.CTkFrame(left_content, fg_color="transparent")
+        password_frame.pack(fill="x", pady=(0, 25))
+        
         ctk.CTkLabel(
-            left_content,
-            text="Contraseña",
-            font=("Segoe UI", 14, "bold"),
-            text_color="#2C2C2C",
+            password_frame,
+            text="🔒  Contraseña",
+            font=("Segoe UI", 13, "bold"),
+            text_color="#555555",
             anchor="w"
         ).pack(anchor="w", pady=(0, 8))
         
-        password_container = ctk.CTkFrame(left_content, fg_color="transparent")
-        password_container.pack(fill="x", pady=(0, 20))
+        password_container = ctk.CTkFrame(password_frame, fg_color="transparent")
+        password_container.pack(fill="x")
         
         self.password_entry = ctk.CTkEntry(
             password_container,
-            height=50,
-            corner_radius=12,
-            border_width=2,
-            border_color="#E0E0E0",
-            font=("Segoe UI", 14),
-            fg_color="white",
-            text_color="#666666",
+            height=52,
+            corner_radius=15,
+            border_width=0,
+            font=("Segoe UI", 15),
+            fg_color="#F8F9FA",
+            text_color="#2C2C2C",
             show="•"
         )
         self.password_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
@@ -138,88 +195,145 @@ class PerfilView(ctk.CTkFrame):
         self.toggle_btn = ctk.CTkButton(
             password_container,
             text="👁",
-            width=50,
-            height=50,
-            corner_radius=12,
-            fg_color="white",
+            width=52,
+            height=52,
+            corner_radius=15,
+            fg_color="#F8F9FA",
             text_color="#666666",
-            hover_color="#F5F5F5",
-            border_width=2,
-            border_color="#E0E0E0",
-            font=("Segoe UI", 18),
+            hover_color="#E8E9EA",
+            border_width=0,
+            font=("Segoe UI", 20),
             command=self.toggle_password
         )
         self.toggle_btn.pack(side="left")
         
-        # Panel derecho - Botones de acción
-        right_panel = ctk.CTkFrame(main_container, fg_color="transparent", width=280)
-        right_panel.pack(side="right", fill="y")
-        right_panel.pack_propagate(False)
+        # Panel derecho - Acciones rápidas
+        right_panel = ctk.CTkFrame(content_container, fg_color="transparent")
+        right_panel.pack(side="right", fill="both", expand=True, padx=(15, 0))
         
-        # Botón Editar perfil
-        ctk.CTkButton(
-            right_panel,
-            text="✏️  Editar perfil",
-            height=60,
-            corner_radius=15,
-            fg_color=self.avatar_color,
-            hover_color=self.darken_color(self.avatar_color),
-            font=("Segoe UI", 16, "bold"),
-            text_color="white",
-            command=self.editar_perfil
-        ).pack(fill="x", pady=(0, 15))
+        # Tarjeta de acciones principales
+        actions_card = ctk.CTkFrame(right_panel, fg_color="white", corner_radius=25)
+        actions_card.pack(fill="both", expand=True)
         
-        # Botón Borrar perfil
-        ctk.CTkButton(
-            right_panel,
-            text="🗑️  Borrar perfil",
-            height=60,
-            corner_radius=15,
-            fg_color=self.avatar_color,
-            hover_color=self.darken_color(self.avatar_color),
-            font=("Segoe UI", 16, "bold"),
-            text_color="white",
-            command=self.borrar_perfil
-        ).pack(fill="x", pady=(0, 15))
+        actions_content = ctk.CTkFrame(actions_card, fg_color="transparent")
+        actions_content.pack(fill="both", expand=True, padx=40, pady=40)
         
-        # Botón Agregar perfil
-        ctk.CTkButton(
-            right_panel,
-            text="➕  Agregar perfil",
-            height=60,
-            corner_radius=15,
-            fg_color=self.avatar_color,
-            hover_color=self.darken_color(self.avatar_color),
-            font=("Segoe UI", 16, "bold"),
-            text_color="white",
-            command=self.agregar_perfil
-        ).pack(fill="x", pady=(0, 15))
+        # Título de acciones
+        ctk.CTkLabel(
+            actions_content,
+            text="⚡ Acciones Rápidas",
+            font=("Segoe UI", 24, "bold"),
+            text_color="#1A1A1A",
+            anchor="w"
+        ).pack(anchor="w", pady=(0, 30))
         
-        # Botón Guardar cambios
-        ctk.CTkButton(
-            right_panel,
-            text="💾  Guardar cambios",
-            height=60,
-            corner_radius=15,
-            fg_color=self.avatar_color,
-            hover_color=self.darken_color(self.avatar_color),
-            font=("Segoe UI", 16, "bold"),
+        # Botón Guardar cambios (destacado en rosa)
+        guardar_btn = ctk.CTkButton(
+            actions_content,
+            text="💾  Guardar Cambios",
+            height=70,
+            corner_radius=20,
+            fg_color="#E91E63",
+            hover_color="#C2185B",
+            font=("Segoe UI", 18, "bold"),
             text_color="white",
             command=self.guardar_cambios
-        ).pack(fill="x", pady=(0, 30))
+        )
+        guardar_btn.pack(fill="x", pady=(0, 20))
         
-        # Botón Cerrar sesión
-        ctk.CTkButton(
-            right_panel,
-            text="➜  Cerrar sesión",
-            height=60,
-            corner_radius=15,
-            fg_color=self.avatar_color,
-            hover_color=self.darken_color(self.avatar_color),
-            font=("Segoe UI", 16, "bold"),
+        # Separador visual
+        separator = ctk.CTkFrame(actions_content, height=1, fg_color="#E8E8E8")
+        separator.pack(fill="x", pady=20)
+        
+        # Grid de botones secundarios (2x2) con diseño mejorado
+        grid_frame = ctk.CTkFrame(actions_content, fg_color="transparent")
+        grid_frame.pack(fill="x", pady=(0, 20))
+        
+        # Fila 1
+        row1 = ctk.CTkFrame(grid_frame, fg_color="transparent")
+        row1.pack(fill="x", pady=(0, 15))
+        
+        # Botón Editar perfil
+        edit_btn = ctk.CTkButton(
+            row1,
+            text="✏️  Editar Perfil",
+            height=65,
+            corner_radius=18,
+            fg_color="#E3F2FD",
+            hover_color="#BBDEFB",
+            font=("Segoe UI", 15, "bold"),
+            text_color="#1976D2",
+            border_width=0,
+            command=self.editar_perfil
+        )
+        edit_btn.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        
+        # Botón Agregar usuario
+        add_btn = ctk.CTkButton(
+            row1,
+            text="➕  Agregar Usuario",
+            height=65,
+            corner_radius=18,
+            fg_color="#E8F5E9",
+            hover_color="#C8E6C9",
+            font=("Segoe UI", 15, "bold"),
+            text_color="#388E3C",
+            border_width=0,
+            command=self.agregar_perfil
+        )
+        add_btn.pack(side="left", fill="x", expand=True, padx=(10, 0))
+        
+        # Fila 2
+        row2 = ctk.CTkFrame(grid_frame, fg_color="transparent")
+        row2.pack(fill="x")
+        
+        # Botón Eliminar perfil
+        delete_btn = ctk.CTkButton(
+            row2,
+            text="🗑️  Eliminar Perfil",
+            height=65,
+            corner_radius=18,
+            fg_color="#FFEBEE",
+            hover_color="#FFCDD2",
+            font=("Segoe UI", 15, "bold"),
+            text_color="#D32F2F",
+            border_width=0,
+            command=self.borrar_perfil
+        )
+        delete_btn.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        
+        # Botón Ayuda
+        help_btn = ctk.CTkButton(
+            row2,
+            text="❓  Ayuda",
+            height=65,
+            corner_radius=18,
+            fg_color="#FFF3E0",
+            hover_color="#FFE0B2",
+            font=("Segoe UI", 15, "bold"),
+            text_color="#F57C00",
+            border_width=0,
+            command=self.mostrar_ayuda
+        )
+        help_btn.pack(side="left", fill="x", expand=True, padx=(10, 0))
+        
+        # Espaciador
+        ctk.CTkFrame(actions_content, fg_color="transparent").pack(expand=True)
+        
+        # Botón Cerrar sesión al final con diseño mejorado
+        logout_btn = ctk.CTkButton(
+            actions_content,
+            text="🚪  Cerrar Sesión",
+            height=70,
+            corner_radius=20,
+            fg_color="#FF5252",
+            hover_color="#E53935",
+            font=("Segoe UI", 17, "bold"),
             text_color="white",
+            border_width=0,
             command=self.cerrar_sesion
-        ).pack(fill="x")
+        )
+        logout_btn.pack(fill="x", pady=(20, 0))
     
     def darken_color(self, hex_color):
         """Oscurecer un color hexadecimal para el efecto hover"""
@@ -249,7 +363,8 @@ class PerfilView(ctk.CTkFrame):
     
     def borrar_perfil(self):
         """Borrar perfil (solo para administradores)"""
-        if self.user.get("rol") not in ["Administrador", "Admin"]:
+        rol = self.user.get("rol", "").lower()
+        if "admin" not in rol:
             messagebox.showwarning("Acceso Denegado", "Solo los administradores pueden borrar perfiles")
             return
         
@@ -262,11 +377,26 @@ class PerfilView(ctk.CTkFrame):
     
     def agregar_perfil(self):
         """Agregar nuevo perfil (solo para administradores)"""
-        if self.user.get("rol") not in ["Administrador", "Admin"]:
+        rol = self.user.get("rol", "").lower()
+        if "admin" not in rol:
             messagebox.showwarning("Acceso Denegado", "Solo los administradores pueden agregar perfiles")
             return
         
         messagebox.showinfo("Agregar Perfil", "Redirigiendo a la sección de Usuarios para agregar un nuevo perfil...")
+    
+    def mostrar_ayuda(self):
+        """Mostrar ayuda sobre el perfil"""
+        messagebox.showinfo(
+            "Ayuda - Perfil de Usuario",
+            "📋 Información del Perfil:\n\n"
+            "• Puedes editar tu nombre y correo electrónico\n"
+            "• Para cambiar tu contraseña, escribe una nueva\n"
+            "• Haz clic en 'Guardar Cambios' para aplicar\n"
+            "• El botón 👁 muestra/oculta tu contraseña\n\n"
+            "🔐 Permisos:\n"
+            "• Solo administradores pueden agregar/eliminar usuarios\n"
+            "• Cada usuario puede editar su propio perfil"
+        )
     
     def guardar_cambios(self):
         """Guardar cambios del perfil"""

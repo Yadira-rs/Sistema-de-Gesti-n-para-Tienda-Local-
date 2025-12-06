@@ -75,16 +75,16 @@ class VentasView(ctk.CTkFrame):
         self.search_entry.bind("<Return>", lambda e: self.procesar_codigo_escaneado())
         
         # Botón para producto personalizado
-        ctk.CTkButton(
-            search_frame,
-            text="➕ Otro",
+        self.boton_otro = ctk.CTkButton(
+            parent,
+            text="➕ Agregar Producto Personalizado",
             fg_color="#9C27B0",
             hover_color="#7B1FA2",
-            width=80,
-            height=45,
-            font=("Segoe UI", 11, "bold"),
+            height=38,
+            font=("Segoe UI", 12, "bold"),
             command=self.agregar_producto_personalizado
-        ).pack(side="left", padx=(0, 15))
+        )
+        self.boton_otro.pack(fill="x", pady=(0, 15))
         
         # Grid de productos
         self.productos_scroll = ctk.CTkScrollableFrame(parent, fg_color="transparent")

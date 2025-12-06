@@ -232,13 +232,14 @@ class UsersView(ctk.CTkFrame):
         headers_frame.pack(fill="x", pady=(0, 5))
         
         headers = [
-            ("Usuario", 0.15),
-            ("Email", 0.2),
-            ("Contraseña", 0.15),
-            ("Rol", 0.12),
-            ("Estado", 0.12),
-            ("Fecha Creación", 0.18),
-            ("Acciones", 0.08)
+            ("Usuario", 0.13),
+            ("Email", 0.18),
+            ("Contraseña", 0.13),
+            ("Rol", 0.10),
+            ("Ventas", 0.10),
+            ("Estado", 0.10),
+            ("Fecha Creación", 0.16),
+            ("Acciones", 0.10)
         ]
         
         for header, weight in headers:
@@ -405,6 +406,47 @@ class UsersView(ctk.CTkFrame):
             height=24
         )
         rol_badge.pack()
+        
+        # Ventas totales
+        ventas_frame = ctk.CTkFrame(container, fg_color="transparent")
+        ventas_frame.pack(side="left", expand=True, padx=5)
+        
+        # Obtener total de ventas del usuario
+        try:
+            from database.db import crear_conexion
+            conn = crear_conexion()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("""
+                SELECT COUNT(*) as total_ventas, COALESCE(SUM(total), 0) as monto_total
+                FROM ventas
+                WHERE id_usuario = %s
+            """, (usuario.get('id_usuario'),))
+            ventas_data = cursor.fetchone()
+            conn.close()
+            
+            total_ventas = ventas_data['total_ventas'] if ventas_data else 0
+            monto_total = float(ventas_data['monto_total']) if ventas_data else 0
+        except:
+            total_ventas = 0
+            monto_total = 0
+        
+        # Mostrar número de ventas y monto
+        ventas_container = ctk.CTkFrame(ventas_frame, fg_color="transparent")
+        ventas_container.pack()
+        
+        ctk.CTkLabel(
+            ventas_container,
+            text=f"{total_ventas} ventas",
+            font=("Segoe UI", 10, "bold"),
+            text_color="#2C2C2C"
+        ).pack()
+        
+        ctk.CTkLabel(
+            ventas_container,
+            text=f"${monto_total:,.2f}",
+            font=("Segoe UI", 9),
+            text_color="#4CAF50"
+        ).pack()
         
         # Estado (badge)
         estado_frame = ctk.CTkFrame(container, fg_color="transparent")

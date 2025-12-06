@@ -51,7 +51,8 @@ class GestionCreditosView(ctk.CTkFrame):
             "Control de Ventas a Crédito",
             "Créditos a clientes",
             "Vencidos",
-            "Abonos de Hoy"
+            "Abonos de Hoy",
+            "Gestión de Clientes"
         ]
         
         self.tab_buttons = {}
@@ -99,6 +100,8 @@ class GestionCreditosView(ctk.CTkFrame):
             self.mostrar_vencidos()
         elif tab == "Abonos de Hoy":
             self.mostrar_abonos_hoy()
+        elif tab == "Gestión de Clientes":
+            self.mostrar_gestion_clientes()
 
     def mostrar_control_creditos(self):
         """Mostrar tab de Control de Ventas a Crédito"""
@@ -485,15 +488,15 @@ class GestionCreditosView(ctk.CTkFrame):
         # Crear ventana de nuevo crédito
         credito_window = ctk.CTkToplevel(self)
         credito_window.title("Nuevo Crédito")
-        credito_window.geometry("500x600")
+        credito_window.geometry("550x700")
         credito_window.transient(self)
         credito_window.grab_set()
         
         # Centrar ventana
         credito_window.update_idletasks()
-        x = (credito_window.winfo_screenwidth() // 2) - (500 // 2)
-        y = (credito_window.winfo_screenheight() // 2) - (600 // 2)
-        credito_window.geometry(f"500x600+{x}+{y}")
+        x = (credito_window.winfo_screenwidth() // 2) - (550 // 2)
+        y = (credito_window.winfo_screenheight() // 2) - (700 // 2)
+        credito_window.geometry(f"550x700+{x}+{y}")
         
         # Contenido
         main_frame = ctk.CTkFrame(credito_window, fg_color="white")
@@ -502,7 +505,7 @@ class GestionCreditosView(ctk.CTkFrame):
         ctk.CTkLabel(
             main_frame,
             text="💳 Nuevo Crédito",
-            font=("Segoe UI", 20, "bold"),
+            font=("Segoe UI", 22, "bold"),
             text_color="#333333"
         ).pack(pady=(0, 20))
         
@@ -510,29 +513,84 @@ class GestionCreditosView(ctk.CTkFrame):
         form_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
         form_frame.pack(fill="both", expand=True, pady=(0, 15))
         
-        # Cliente
-        ctk.CTkLabel(form_frame, text="Cliente:", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
-        cliente_entry = ctk.CTkEntry(form_frame, placeholder_text="Nombre del cliente", height=40, font=("Segoe UI", 13))
-        cliente_entry.pack(fill="x", pady=(0, 15))
+        # Cargar clientes de la base de datos
+        try:
+            from database.db import crear_conexion
+            conn = crear_conexion()
+            cursor = conn.cursor(dictionary=True)
+            # Solo seleccionar columnas que existen
+            cursor.execute("SELECT id_cliente, nombre, telefono FROM clientes ORDER BY nombre")
+            clientes = cursor.fetchall()
+            conn.close()
+            
+            # Crear diccionario de clientes
+            clientes_dict = {}
+            clientes_nombres = []
+            for cliente in clientes:
+                nombre_completo = f"{cliente['nombre']} - {cliente['telefono']}"
+                clientes_nombres.append(nombre_completo)
+                clientes_dict[nombre_completo] = cliente['id_cliente']
+        except Exception as e:
+            print(f"Error al cargar clientes: {e}")
+            clientes_nombres = []
+            clientes_dict = {}
+        
+        # Cliente (ComboBox)
+        ctk.CTkLabel(form_frame, text="Cliente: *", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        
+        if clientes_nombres:
+            cliente_combo = ctk.CTkComboBox(
+                form_frame,
+                values=clientes_nombres,
+                height=45,
+                font=("Segoe UI", 13),
+                dropdown_font=("Segoe UI", 12),
+                button_color="#E91E63",
+                button_hover_color="#C2185B",
+                border_color="#E0E0E0"
+            )
+            cliente_combo.pack(fill="x", pady=(0, 15))
+            cliente_combo.set("Selecciona un cliente")
+        else:
+            # Si no hay clientes, mostrar mensaje
+            no_clientes_frame = ctk.CTkFrame(form_frame, fg_color="#FFF3E0", corner_radius=10)
+            no_clientes_frame.pack(fill="x", pady=(0, 15))
+            
+            ctk.CTkLabel(
+                no_clientes_frame,
+                text="⚠️ No hay clientes registrados\nPrimero debes agregar clientes en la sección de Clientes",
+                font=("Segoe UI", 12),
+                text_color="#F57C00",
+                justify="center"
+            ).pack(padx=15, pady=15)
+            
+            cliente_combo = None
+        
+        # ID Venta (opcional)
+        ctk.CTkLabel(form_frame, text="ID Venta (opcional):", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        venta_entry = ctk.CTkEntry(form_frame, placeholder_text="Dejar vacío si no hay venta asociada", height=45, font=("Segoe UI", 13))
+        venta_entry.pack(fill="x", pady=(0, 15))
         
         # Monto
-        ctk.CTkLabel(form_frame, text="Monto del Crédito:", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
-        monto_entry = ctk.CTkEntry(form_frame, placeholder_text="$0.00", height=40, font=("Segoe UI", 13))
+        ctk.CTkLabel(form_frame, text="Monto del Crédito: *", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        monto_entry = ctk.CTkEntry(form_frame, placeholder_text="$0.00", height=45, font=("Segoe UI", 13))
         monto_entry.pack(fill="x", pady=(0, 15))
         
         # Plazo
-        ctk.CTkLabel(form_frame, text="Plazo (días):", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
-        plazo_entry = ctk.CTkEntry(form_frame, placeholder_text="30", height=40, font=("Segoe UI", 13))
+        ctk.CTkLabel(form_frame, text="Plazo (días): *", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        plazo_entry = ctk.CTkEntry(form_frame, placeholder_text="30", height=45, font=("Segoe UI", 13))
         plazo_entry.pack(fill="x", pady=(0, 15))
+        plazo_entry.insert(0, "30")
         
         # Tasa de interés
-        ctk.CTkLabel(form_frame, text="Tasa de Interés (%):", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
-        tasa_entry = ctk.CTkEntry(form_frame, placeholder_text="0", height=40, font=("Segoe UI", 13))
+        ctk.CTkLabel(form_frame, text="Tasa de Interés (%):", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        tasa_entry = ctk.CTkEntry(form_frame, placeholder_text="0", height=45, font=("Segoe UI", 13))
         tasa_entry.pack(fill="x", pady=(0, 15))
+        tasa_entry.insert(0, "0")
         
         # Notas
-        ctk.CTkLabel(form_frame, text="Notas:", font=("Segoe UI", 12), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
-        notas_entry = ctk.CTkTextbox(form_frame, height=80, font=("Segoe UI", 13))
+        ctk.CTkLabel(form_frame, text="Notas:", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
+        notas_entry = ctk.CTkTextbox(form_frame, height=100, font=("Segoe UI", 13))
         notas_entry.pack(fill="x", pady=(0, 15))
         
         # Botones
@@ -540,37 +598,63 @@ class GestionCreditosView(ctk.CTkFrame):
         btn_frame.pack(fill="x")
         
         def guardar_credito():
-            cliente = cliente_entry.get().strip()
+            if not cliente_combo or not clientes_nombres:
+                messagebox.showwarning("Sin clientes", "Primero debes registrar clientes en el sistema")
+                return
+            
+            cliente_seleccionado = cliente_combo.get()
             monto = monto_entry.get().strip()
             plazo = plazo_entry.get().strip()
+            tasa = tasa_entry.get().strip() or "0"
+            notas = notas_entry.get("1.0", "end").strip()
+            id_venta = venta_entry.get().strip() or None
             
-            if not cliente or not monto or not plazo:
-                messagebox.showwarning("Datos incompletos", "Por favor completa todos los campos obligatorios")
+            if cliente_seleccionado == "Selecciona un cliente" or not monto or not plazo:
+                messagebox.showwarning("Datos incompletos", "Por favor completa todos los campos obligatorios (*)")
                 return
             
             try:
-                monto_float = float(monto)
+                id_cliente = clientes_dict[cliente_seleccionado]
+                monto_float = float(monto.replace("$", "").replace(",", ""))
                 plazo_int = int(plazo)
+                tasa_float = float(tasa)
                 
-                messagebox.showinfo(
-                    "Crédito Registrado",
-                    f"Crédito registrado exitosamente:\n\n"
-                    f"Cliente: {cliente}\n"
-                    f"Monto: ${monto_float:,.2f}\n"
-                    f"Plazo: {plazo_int} días"
+                # Guardar en la base de datos
+                from controllers.creditos import crear_credito
+                id_credito = crear_credito(
+                    id_venta=id_venta,
+                    id_cliente=id_cliente,
+                    monto_total=monto_float,
+                    plazo_dias=plazo_int,
+                    tasa_interes=tasa_float,
+                    notas=notas
                 )
-                credito_window.destroy()
+                
+                if id_credito:
+                    messagebox.showinfo(
+                        "✅ Crédito Registrado",
+                        f"Crédito #{id_credito} registrado exitosamente\n\n"
+                        f"Cliente: {cliente_seleccionado.split(' - ')[0]}\n"
+                        f"Monto: ${monto_float:,.2f}\n"
+                        f"Plazo: {plazo_int} días"
+                    )
+                    credito_window.destroy()
+                    self.cargar_datos()  # Recargar la lista
+                else:
+                    messagebox.showerror("Error", "No se pudo registrar el crédito")
                 
             except ValueError:
-                messagebox.showerror("Error", "Monto y plazo deben ser números válidos")
+                messagebox.showerror("Error", "Monto, plazo y tasa deben ser números válidos")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al guardar: {str(e)}")
         
         ctk.CTkButton(
             btn_frame,
             text="💾 Guardar Crédito",
             fg_color="#4CAF50",
             hover_color="#45a049",
-            height=45,
-            font=("Segoe UI", 12, "bold"),
+            height=50,
+            font=("Segoe UI", 14, "bold"),
             command=guardar_credito
         ).pack(side="left", expand=True, fill="x", padx=(0, 5))
         
@@ -580,10 +664,17 @@ class GestionCreditosView(ctk.CTkFrame):
             fg_color="#E0E0E0",
             text_color="#666666",
             hover_color="#D0D0D0",
-            height=45,
-            font=("Segoe UI", 12),
+            height=50,
+            font=("Segoe UI", 14),
             command=credito_window.destroy
         ).pack(side="left", expand=True, fill="x", padx=(5, 0))
 
 
 
+
+    def mostrar_gestion_clientes(self):
+        """Mostrar tab de Gestión de Clientes"""
+        from views.clientes_view import ClientesView
+        
+        # Crear instancia de la vista de clientes dentro del content_frame
+        clientes_view = ClientesView(self.content_frame, self.user)
