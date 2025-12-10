@@ -150,7 +150,7 @@ La base de datos incluye tablas como:
 
 | Integrante | Rol principal |
 |-------------|---------------|
-| Iris Yadira Santiago | Backend  |
+| Iris Yadira Santiago | Backend y Project manager  |
 | Danna Michell Robles | Frontend |
 | Lucía Medina | Frontend |
 | Cindy Alejandra Reyes | Backend |
