@@ -12,6 +12,7 @@ from views.ventas_view import VentasView
 from views.historial_ventas_view import HistorialVentasView
 from views.users_view import UsersView
 from views.gestion_creditos_view import GestionCreditosView
+from views.clientes_view import ClientesView
 from views.perfil_view import PerfilView
 
 # Sistema de notificaciones
@@ -78,6 +79,7 @@ class MainApp(tk.Tk):
             ("🛒", "Punto de Venta", VentasView),
             ("📝", "Apartado", GestionApartadosView),
             ("📦", "Productos", ProductsView),
+            ("👥", "Clientes", ClientesView),
             ("📋", "Ventas", HistorialVentasView),
             ("💳", "Créditos", GestionCreditosView),
         ]
@@ -470,9 +472,33 @@ class MainApp(tk.Tk):
         logo_frame.pack(side="left", padx=(0, 10))
         logo_frame.pack_propagate(False)
         
-        # Intentar cargar el logo desde diferentes ubicaciones
+        # Cargar el LOGO LIMPIO para sidebar
         logo_paths = [
+            "logo_limpio_sidebar.png",  # LOGO LIMPIO para sidebar (80px)
+            "logo_limpio_header.png",  # Logo limpio para header (50px)
+            "logo_limpio_definitivo.png",  # Logo limpio completo
+            "assets/logo_limpio_sidebar.png",  # En carpeta assets
+            "assets/logo_limpio_header.png",  # En carpeta assets
+            "assets/logo_limpio_definitivo.png",  # En carpeta assets
+            "logo_final_sidebar.png",  # Fallback imagen original
+            "logo_final_header.png",  # Fallback original header
+            "logo_janet_rosa_definitivo.png",  # Fallback original completa
+            "assets/logo_final_sidebar.png",  # Fallback en assets
+            "assets/logo_final_header.png",  # Fallback en assets
+            "assets/logo_janet_rosa_definitivo.png",  # Fallback en assets
+            "Captura de pantalla 2025-12-01 234603.png",  # Imagen original directa
+            "logo_nuevo_sidebar.png",  # Fallback anterior
+            "logo_nuevo_50.png",  # Fallback exacto pequeño
+            "logo_janet_rosa_exacto.png",  # Fallback exacto original
+            "assets/logo_nuevo_sidebar.png",  # Fallback en assets
+            "logo_sidebar_60.png",  # Fallback anterior
+            "logo_circular_50.png",  # Fallback circular pequeño
+            "assets/logo_sidebar_60.png",  # Fallback en assets
+            "assets/logo_circular_50.png",  # Fallback en assets
+            "logo_circular_80.png",  # Fallback circular mediano
+            "logo_janet_rosa_profesional.png",  # Fallback anterior
             "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg",
+            "logo_original.png",  # Respaldo del logo original
             "logo.png",
             "assets/logo.png",
             "images/logo.png",
@@ -485,7 +511,28 @@ class MainApp(tk.Tk):
         for path in logo_paths:
             try:
                 if os.path.exists(path):
-                    img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    # Usar tamaño optimizado para el LOGO LIMPIO
+                    if "limpio_sidebar" in path:
+                        img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    elif "limpio_header" in path:
+                        img = Image.open(path).resize((50, 50), Image.Resampling.LANCZOS)
+                    elif "limpio_definitivo" in path:
+                        img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    elif "final_sidebar" in path:
+                        img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    elif "final_header" in path:
+                        img = Image.open(path).resize((50, 50), Image.Resampling.LANCZOS)
+                    elif "definitivo" in path or "Captura de pantalla" in path:
+                        img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    elif "nuevo_sidebar" in path or "exacto" in path:
+                        img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    elif "nuevo_50" in path:
+                        img = Image.open(path).resize((50, 50), Image.Resampling.LANCZOS)
+                    elif "sidebar_60" in path or "profesional" in path:
+                        img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    else:
+                        img = Image.open(path).resize((60, 60), Image.Resampling.LANCZOS)
+                    
                     self.brand_logo = ImageTk.PhotoImage(img)
                     tk.Label(logo_frame, image=self.brand_logo, bg="#FFFFFF").pack(expand=True)
                     logo_loaded = True

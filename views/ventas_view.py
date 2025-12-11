@@ -16,6 +16,72 @@ class VentasView(ctk.CTkFrame):
         self.crear_interfaz()
         self.cargar_productos()
     
+
+    def crear_logo_header(self, parent):
+        """Crear header con logo de Janet Rosa Bici"""
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 20))
+        
+        # Logo pequeño a la izquierda
+        logo_container = ctk.CTkFrame(header_frame, fg_color="transparent")
+        logo_container.pack(side="left", padx=(0, 15))
+        
+        try:
+            # Intentar cargar logo circular pequeño
+            logo_paths = [
+                "logo_limpio_small.png",  # LOGO LIMPIO
+                "assets/logo_limpio_small.png",
+                "logo_limpio_small.png",  # IMAGEN ORIGINAL
+                "assets/logo_limpio_small.png",
+                "logo_limpio_small.png",
+                "logo_nuevo_sidebar.png", 
+                "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg",
+                "logo_original.png"
+            ]
+            
+            logo_loaded = False
+            for path in logo_paths:
+                if os.path.exists(path):
+                    try:
+                        from PIL import Image
+                        img = Image.open(path).resize((40, 40), Image.Resampling.LANCZOS)
+                        logo_image = ctk.CTkImage(light_image=img, dark_image=img, size=(40, 40))
+                        
+                        ctk.CTkLabel(
+                            logo_container,
+                            image=logo_image,
+                            text=""
+                        ).pack()
+                        
+                        logo_loaded = True
+                        break
+                    except Exception:
+                        continue
+            
+            if not logo_loaded:
+                # Fallback: emoji de bicicleta
+                ctk.CTkLabel(
+                    logo_container,
+                    text="🚲",
+                    font=("Segoe UI", 24),
+                    text_color="#E91E63"
+                ).pack()
+                
+        except Exception:
+            # Fallback: emoji de bicicleta
+            ctk.CTkLabel(
+                logo_container,
+                text="🚲",
+                font=("Segoe UI", 24),
+                text_color="#E91E63"
+            ).pack()
+        
+        # Título de la pantalla
+        title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_frame.pack(side="left", fill="x", expand=True)
+        
+        return title_frame
+
     def crear_interfaz(self):
         # Panel principal
         main = ctk.CTkFrame(self, fg_color="transparent")
@@ -31,6 +97,22 @@ class VentasView(ctk.CTkFrame):
             font=("Segoe UI", 24, "bold"),
             text_color="#2C2C2C"
         ).pack(side="left")
+        
+        # Instrucciones de uso
+        tips_frame = ctk.CTkFrame(header, fg_color="#E1F5FE", corner_radius=8, height=35)
+        tips_frame.pack(side="right", padx=(20, 0))
+        tips_frame.pack_propagate(False)
+        
+        content_tips = ctk.CTkFrame(tips_frame, fg_color="transparent")
+        content_tips.pack(expand=True, fill="both", padx=15, pady=8)
+        
+        ctk.CTkLabel(
+            content_tips,
+            text="💡 Cómo vender: Buscar producto • Agregarlo al carrito • Elegir pago • Procesar venta",
+            font=("Segoe UI", 10),
+            text_color="#0277BD",
+            anchor="w"
+        ).pack(expand=True, fill="both")
         
         # Contenedor principal
         body = ctk.CTkFrame(main, fg_color="transparent")

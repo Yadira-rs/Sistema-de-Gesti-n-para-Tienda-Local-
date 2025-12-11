@@ -61,7 +61,7 @@ class LoginWindow(ctk.CTk):
             font=("Segoe UI", 14),
             text_color="#757575"
         ).pack(pady=(0, 35))
-        
+
         # --- Campos de Entrada ---
         
         # Email
@@ -83,9 +83,10 @@ class LoginWindow(ctk.CTk):
             fg_color="white",
             text_color="#333333"
         )
-        self.user_entry.pack(fill="x", pady=(0, 20))
+        self.user_entry.pack(fill="x", pady=(0, 5))
         self.user_entry.bind("<Return>", self.login_action_event)
         
+
         # Password
         ctk.CTkLabel(
             self.content,
@@ -97,7 +98,7 @@ class LoginWindow(ctk.CTk):
         
         # Frame para password + botón ojo
         pass_frame = ctk.CTkFrame(self.content, fg_color="white", corner_radius=10, height=50)
-        pass_frame.pack(fill="x", pady=(0, 30))
+        pass_frame.pack(fill="x", pady=(0, 5))
         pass_frame.pack_propagate(False)
         
         self.password_entry = ctk.CTkEntry(
@@ -126,6 +127,7 @@ class LoginWindow(ctk.CTk):
             command=self.toggle_password
         )
         self.toggle_btn.pack(side="right", padx=5)
+        
         
         # --- Botón Iniciar Sesión ---
         ctk.CTkButton(
@@ -156,37 +158,188 @@ class LoginWindow(ctk.CTk):
         ).pack(side="top", anchor="center")
 
     def crear_logo(self, parent):
-        # Logo circular más grande
-        logo_frame = ctk.CTkFrame(parent, fg_color="white", corner_radius=80, width=160, height=160)
-        logo_frame.pack(pady=(0, 20))
-        logo_frame.pack_propagate(False)
+        # Logo con bicicleta rosa más grande
+        logo_container = ctk.CTkFrame(parent, fg_color="transparent")
+        logo_container.pack(pady=(0, 20))
         
-        logo_image = None
+        # Crear imagen de bicicleta rosa
         try:
+            # Cargar el LOGO LIMPIO sin bordes
             logo_paths = [
+                "logo_limpio_login.png",  # LOGO LIMPIO para login (250px)
+                "logo_limpio_definitivo.png",  # Logo limpio completo
+                "logo_limpio_200.png",  # Logo limpio 200px
+                "assets/logo_limpio_login.png",  # En carpeta assets
+                "assets/logo_limpio_definitivo.png",  # En carpeta assets
+                "logo_final_login.png",  # Fallback imagen original
+                "logo_janet_rosa_definitivo.png",  # Fallback original completa
+                "logo_final_200.png",  # Fallback original 200px
+                "assets/logo_final_login.png",  # Fallback en assets
+                "assets/logo_janet_rosa_definitivo.png",  # Fallback en assets
+                "Captura de pantalla 2025-12-01 234603.png",  # Imagen original directa
+                "logo_nuevo_login.png",  # Fallback anterior
+                "logo_janet_rosa_exacto.png",  # Fallback exacto
+                "logo_nuevo_160.png",  # Fallback mediano
+                "assets/logo_nuevo_login.png",  # Fallback en assets
+                "logo_login_200.png",  # Fallback anterior
+                "logo_circular_160.png",  # Fallback circular
+                "assets/logo_login_200.png",  # Fallback en assets
+                "assets/logo_circular_160.png",  # Fallback en assets
+                "logo_janet_rosa_profesional.png",  # Fallback anterior
+                "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg",  # Imagen principal
+                "janet_rosa_bici_logo_completo.png",  # Fallback creado
+                "bicicleta_rosa_logo.png",  # Fallback de bicicleta
+                "logo_original.png",  # Respaldo del logo original
+                resource_path(os.path.join("assets", "bicicleta_rosa.png")),
                 resource_path(os.path.join("assets", "logo_janet_rosa_bici.png")),
-                resource_path(os.path.join("assets", "logo.png")),
+                resource_path(os.path.join("assets", "logo.png"))
             ]
             
+            logo_image = None
             for path in logo_paths:
                 if os.path.exists(path):
-                    output = self.crear_imagen_circular(path, (140, 140))
-                    logo_image = ctk.CTkImage(
-                        light_image=output,
-                        dark_image=output,
-                        size=(140, 140)
-                    )
-                    break
+                    try:
+                        # Si es el LOGO LIMPIO, usar tamaño grande
+                        if "limpio_login" in path or "limpio_definitivo" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(220, 220)  # Tamaño grande para el logo limpio
+                            )
+                        elif "limpio_200" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(200, 200)  # Tamaño 200px para logo limpio
+                            )
+                        elif "final_login" in path or "definitivo" in path or "Captura de pantalla" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(220, 220)  # Fallback imagen original
+                            )
+                        elif "final_200" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(200, 200)  # Fallback 200px original
+                            )
+                        elif "nuevo_login" in path or "exacto" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(200, 200)  # Fallback para logo exacto
+                            )
+                        elif "nuevo_160" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(160, 160)
+                            )
+                        elif "login_200" in path or "profesional" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(180, 180)
+                            )
+                        elif "circular" in path:
+                            img = Image.open(path)
+                            logo_image = ctk.CTkImage(
+                                light_image=img,
+                                dark_image=img,
+                                size=(160, 160)
+                            )
+                        else:
+                            # Crear imagen circular
+                            circular_image = self.crear_imagen_circular(path, (160, 160))
+                            logo_image = ctk.CTkImage(
+                                light_image=circular_image,
+                                dark_image=circular_image,
+                                size=(160, 160)
+                            )
+                        break
+                    except Exception as e:
+                        print(f"Error cargando {path}: {e}")
+                        continue
             
             if logo_image:
+                # Crear marco transparente para el LOGO LIMPIO
+                if "limpio_login" in str(logo_paths[0]) or "limpio_definitivo" in str(logo_paths[0]):
+                    # Marco transparente grande para el logo limpio
+                    logo_frame = ctk.CTkFrame(logo_container, fg_color="transparent", width=220, height=220)
+                    logo_frame.pack()
+                    logo_frame.pack_propagate(False)
+                elif "final_login" in str(logo_paths[0]) or "definitivo" in str(logo_paths[0]) or "Captura de pantalla" in str(logo_paths[0]):
+                    # Marco transparente para imagen original (fallback)
+                    logo_frame = ctk.CTkFrame(logo_container, fg_color="transparent", width=220, height=220)
+                    logo_frame.pack()
+                    logo_frame.pack_propagate(False)
+                elif "nuevo_login" in str(logo_paths[0]) or "exacto" in str(logo_paths[0]):
+                    # Marco transparente para el logo exacto anterior
+                    logo_frame = ctk.CTkFrame(logo_container, fg_color="transparent", width=200, height=200)
+                    logo_frame.pack()
+                    logo_frame.pack_propagate(False)
+                elif "login_200" in str(logo_paths[0]) or "profesional" in str(logo_paths[0]):
+                    # Marco más grande para el logo profesional anterior
+                    logo_frame = ctk.CTkFrame(logo_container, fg_color="transparent", width=180, height=180)
+                    logo_frame.pack()
+                    logo_frame.pack_propagate(False)
+                else:
+                    # Marco circular blanco para otros logos
+                    logo_frame = ctk.CTkFrame(logo_container, fg_color="white", corner_radius=80, width=160, height=160)
+                    logo_frame.pack()
+                    logo_frame.pack_propagate(False)
+                
                 ctk.CTkLabel(logo_frame, image=logo_image, text="").place(relx=0.5, rely=0.5, anchor="center")
             else:
-                # Si no encuentra la imagen, mostrar emoji
-                ctk.CTkLabel(logo_frame, text="🚲", font=("Segoe UI", 60), text_color="#E91E63").place(relx=0.5, rely=0.5, anchor="center")
+                # Si no encuentra la imagen, crear bicicleta con texto
+                self.crear_logo_texto(logo_container)
                 
         except Exception as e:
-            print(f"Error cargando logo: {e}")
-            ctk.CTkLabel(logo_frame, text="🚲", font=("Segoe UI", 60), text_color="#E91E63").place(relx=0.5, rely=0.5, anchor="center")
+            print(f"Error general cargando logo: {e}")
+            self.crear_logo_texto(logo_container)
+    
+    def crear_logo_texto(self, parent):
+        """Crear logo con texto cuando no hay imagen disponible"""
+        # Bicicleta emoji más grande
+        ctk.CTkLabel(
+            parent,
+            text="🚲",
+            font=("Segoe UI", 80),
+            text_color="#E91E63"
+        ).pack(pady=(0, 10))
+        
+        # Texto JANET ROSA BICI en formato vertical como en la imagen
+        texto_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        texto_frame.pack()
+        
+        ctk.CTkLabel(
+            texto_frame,
+            text="JANET",
+            font=("Segoe UI", 24, "bold"),
+            text_color="#2C2C2C"
+        ).pack()
+        
+        ctk.CTkLabel(
+            texto_frame,
+            text="ROSA",
+            font=("Segoe UI", 24, "bold"),
+            text_color="#2C2C2C"
+        ).pack()
+        
+        ctk.CTkLabel(
+            texto_frame,
+            text="BICI",
+            font=("Segoe UI", 24, "bold"),
+            text_color="#2C2C2C"
+        ).pack()
 
     def crear_imagen_circular(self, path, size):
         """Abre una imagen, la redimensiona y la devuelve como un objeto circular."""

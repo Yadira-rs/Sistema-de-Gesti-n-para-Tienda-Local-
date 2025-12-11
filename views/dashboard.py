@@ -14,29 +14,101 @@ class DashboardView(ctk.CTkFrame):
         self.crear_interfaz()
         self.cargar_datos()
     
+
+    def crear_logo_header(self, parent):
+        """Crear header con logo de Janet Rosa Bici"""
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 20))
+        
+        # Logo pequeño a la izquierda
+        logo_container = ctk.CTkFrame(header_frame, fg_color="transparent")
+        logo_container.pack(side="left", padx=(0, 15))
+        
+        try:
+            # Intentar cargar logo circular pequeño
+            logo_paths = [
+                "logo_limpio_small.png",  # LOGO LIMPIO
+                "assets/logo_limpio_small.png",
+                "logo_limpio_small.png",  # IMAGEN ORIGINAL
+                "assets/logo_limpio_small.png",
+                "logo_limpio_small.png",
+                "logo_nuevo_sidebar.png", 
+                "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg",
+                "logo_original.png"
+            ]
+            
+            logo_loaded = False
+            for path in logo_paths:
+                if os.path.exists(path):
+                    try:
+                        from PIL import Image
+                        img = Image.open(path).resize((40, 40), Image.Resampling.LANCZOS)
+                        logo_image = ctk.CTkImage(light_image=img, dark_image=img, size=(40, 40))
+                        
+                        ctk.CTkLabel(
+                            logo_container,
+                            image=logo_image,
+                            text=""
+                        ).pack()
+                        
+                        logo_loaded = True
+                        break
+                    except Exception:
+                        continue
+            
+            if not logo_loaded:
+                # Fallback: emoji de bicicleta
+                ctk.CTkLabel(
+                    logo_container,
+                    text="🚲",
+                    font=("Segoe UI", 24),
+                    text_color="#E91E63"
+                ).pack()
+                
+        except Exception:
+            # Fallback: emoji de bicicleta
+            ctk.CTkLabel(
+                logo_container,
+                text="🚲",
+                font=("Segoe UI", 24),
+                text_color="#E91E63"
+            ).pack()
+        
+        # Título de la pantalla
+        title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_frame.pack(side="left", fill="x", expand=True)
+        
+        return title_frame
+
     def crear_interfaz(self):
-        # Contenedor principal
+        # Contenedor principal con menos padding
         main_container = ctk.CTkFrame(self, fg_color="transparent")
-        main_container.pack(fill="both", expand=True, padx=30, pady=30)
+        main_container.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Header del Dashboard
         self.crear_header(main_container)
+        
+        # Instrucciones de navegación
+        self.crear_instrucciones_navegacion(main_container)
         
         # Tarjetas de estadísticas (4 en fila)
         self.crear_tarjetas_estadisticas(main_container)
         
         # Contenedor de las dos secciones principales
         content_container = ctk.CTkFrame(main_container, fg_color="transparent")
-        content_container.pack(fill="both", expand=True, pady=(30, 0))
+        content_container.pack(fill="both", expand=True, pady=(20, 0))
+        
+        # Configurar grid para dos columnas iguales
+        content_container.grid_columnconfigure(0, weight=1)
+        content_container.grid_columnconfigure(1, weight=1)
         
         # Panel izquierdo - Productos con Stock Bajo
         left_panel = ctk.CTkFrame(content_container, fg_color="white", corner_radius=8)
-        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 15))
+        left_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         
-        # Panel derecho - Últimas Ventas
-        right_panel = ctk.CTkFrame(content_container, fg_color="white", corner_radius=8, width=420)
-        right_panel.pack(side="right", fill="y")
-        right_panel.pack_propagate(False)
+        # Panel derecho - Últimas Ventas (mismo ancho que el izquierdo)
+        right_panel = ctk.CTkFrame(content_container, fg_color="white", corner_radius=8)
+        right_panel.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
         
         self.crear_seccion_stock_bajo(left_panel)
         self.crear_seccion_ultimas_ventas(right_panel)
@@ -44,7 +116,7 @@ class DashboardView(ctk.CTkFrame):
     def crear_header(self, parent):
         """Crear header del dashboard"""
         header_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 30))
+        header_frame.pack(fill="x", pady=(0, 20))
         
         # Título principal
         ctk.CTkLabel(
@@ -62,10 +134,34 @@ class DashboardView(ctk.CTkFrame):
             text_color="#666666"
         ).pack(anchor="w", pady=(5, 0))
     
+    def crear_instrucciones_navegacion(self, parent):
+        """Crear panel de ayuda para el usuario"""
+        ayuda_frame = ctk.CTkFrame(parent, fg_color="#F3E5F5", corner_radius=8, height=45)
+        ayuda_frame.pack(fill="x", pady=(0, 15))
+        ayuda_frame.pack_propagate(False)
+        
+        content_frame = ctk.CTkFrame(ayuda_frame, fg_color="transparent")
+        content_frame.pack(expand=True, fill="both", padx=20, pady=10)
+        
+        ctk.CTkLabel(
+            content_frame,
+            text="📋",
+            font=("Segoe UI", 18)
+        ).pack(side="left", padx=(0, 12))
+        
+        ctk.CTkLabel(
+            content_frame,
+            text="Qué hacer aquí: Ver resumen de ventas • Revisar productos con poco stock • Consultar últimas transacciones",
+            font=("Segoe UI", 11),
+            text_color="#7B1FA2",
+            anchor="w",
+            wraplength=800
+        ).pack(side="left", fill="x", expand=True)
+    
     def crear_tarjetas_estadisticas(self, parent):
         """Crear las 4 tarjetas de estadísticas principales"""
         stats_container = ctk.CTkFrame(parent, fg_color="transparent")
-        stats_container.pack(fill="x", pady=(0, 30))
+        stats_container.pack(fill="x", pady=(0, 20))
         
         # Configurar grid para 4 columnas
         stats_container.grid_columnconfigure((0, 1, 2, 3), weight=1)
@@ -244,7 +340,7 @@ class DashboardView(ctk.CTkFrame):
                 self.crear_item_stock_bajo(self.stock_scroll, producto)
     
     def crear_item_stock_bajo(self, parent, producto):
-        """Crear item de producto con stock bajo - estilo como en la imagen"""
+        """Crear item de producto con stock bajo - diseño simple y centrado"""
         stock = producto.get('stock', 0)
         nombre = producto.get('nombre', 'Producto')
         precio = float(producto.get('precio', 0))
@@ -253,9 +349,9 @@ class DashboardView(ctk.CTkFrame):
         item_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", corner_radius=6)
         item_frame.pack(fill="x", pady=3, padx=5)
         
-        # Contenido del item
+        # Contenido del item con padding vertical para centrado
         content_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
-        content_frame.pack(fill="x", padx=20, pady=15)
+        content_frame.pack(fill="x", padx=20, pady=18)
         
         # Fila superior - Nombre del producto
         ctk.CTkLabel(
@@ -319,7 +415,7 @@ class DashboardView(ctk.CTkFrame):
                 self.crear_item_venta(self.ventas_scroll, venta, i + 35)  # Simular IDs
     
     def crear_item_venta(self, parent, venta, venta_id):
-        """Crear item de venta - estilo como en la imagen"""
+        """Crear item de venta - diseño simple y centrado"""
         total = float(venta.get('total', 150.00))  # Valor por defecto
         fecha = venta.get('fecha', datetime.now())
         
@@ -333,9 +429,9 @@ class DashboardView(ctk.CTkFrame):
         item_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", corner_radius=6)
         item_frame.pack(fill="x", pady=3, padx=5)
         
-        # Contenido del item
+        # Contenido del item con padding vertical para centrado
         content_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
-        content_frame.pack(fill="x", padx=20, pady=15)
+        content_frame.pack(fill="x", padx=20, pady=18)
         
         # Fila superior - ID de venta y total
         top_frame = ctk.CTkFrame(content_frame, fg_color="transparent")

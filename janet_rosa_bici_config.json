@@ -1,0 +1,45 @@
+{
+  "version": "auto-py-to-exe-configuration_v1",
+  "pyinstallerOptions": [
+    {
+      "optionDest": "filenames",
+      "value": "app.py"
+    },
+    {
+      "optionDest": "onefile",
+      "value": true
+    },
+    {
+      "optionDest": "console",
+      "value": false
+    },
+    {
+      "optionDest": "name",
+      "value": "JanetRosaBici"
+    },
+    {
+      "optionDest": "datas",
+      "value": "config_db.json;."
+    },
+    {
+      "optionDest": "datas",
+      "value": "views;views"
+    },
+    {
+      "optionDest": "datas",
+      "value": "controllers;controllers"
+    },
+    {
+      "optionDest": "datas",
+      "value": "database;database"
+    },
+    {
+      "optionDest": "datas",
+      "value": "utils;utils"
+    },
+    {
+      "optionDest": "datas",
+      "value": "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg;."
+    }
+  ]
+}

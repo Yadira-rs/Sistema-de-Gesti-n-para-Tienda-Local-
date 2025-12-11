@@ -226,3 +226,86 @@ def obtener_resumen_creditos():
             'total_por_cobrar': 0,
             'total_cobrado': 0
         }
+
+def obtener_abonos_credito(id_credito):
+    """Obtiene todos los abonos de un crédito específico"""
+    conn = crear_conexion()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                id_abono,
+                monto_abono,
+                fecha_abono,
+                metodo_pago,
+                notas
+            FROM abonos_creditos 
+            WHERE id_credito = %s
+            ORDER BY fecha_abono DESC
+        """, (id_credito,))
+        abonos = cursor.fetchall()
+        conn.close()
+        return abonos
+    except Exception as e:
+        print(f"Error al obtener abonos: {e}")
+        conn.close()
+        return []
+
+def cerrar_credito_manual(id_credito):
+    """Cierra un crédito manualmente"""
+    conn = crear_conexion()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE creditos SET estado = 'Pagado' WHERE id_credito = %s",
+            (id_credito,)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error al cerrar crédito: {e}")
+        conn.close()
+        return False
+
+def actualizar_saldo_credito(id_credito):
+    """Actualiza el saldo de un crédito basado en los abonos"""
+    conn = crear_conexion()
+    cursor = conn.cursor()
+    try:
+        # Obtener total de abonos
+        cursor.execute(
+            "SELECT COALESCE(SUM(monto_abono), 0) as total_abonos FROM abonos_creditos WHERE id_credito = %s",
+            (id_credito,)
+        )
+        total_abonos = cursor.fetchone()[0]
+        
+        # Obtener monto total del crédito
+        cursor.execute(
+            "SELECT monto_total FROM creditos WHERE id_credito = %s",
+            (id_credito,)
+        )
+        monto_total = cursor.fetchone()[0]
+        
+        # Calcular nuevo saldo
+        nuevo_saldo = monto_total - total_abonos
+        
+        # Actualizar crédito
+        cursor.execute("""
+            UPDATE creditos 
+            SET monto_pagado = %s, 
+                saldo_pendiente = %s,
+                estado = CASE 
+                    WHEN %s <= 0 THEN 'Pagado'
+                    ELSE estado
+                END
+            WHERE id_credito = %s
+        """, (total_abonos, nuevo_saldo, nuevo_saldo, id_credito))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error al actualizar saldo: {e}")
+        conn.close()
+        return False
