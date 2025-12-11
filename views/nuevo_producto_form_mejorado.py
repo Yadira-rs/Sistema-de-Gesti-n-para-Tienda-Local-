@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
-from controllers.products import agregar_producto, codigo_disponible, codigo_barras_disponible, obtener_categorias
+from controllers.products import agregar_producto, codigo_disponible, codigo_barras_disponible
 
 class NuevoProductoFormMejorado(ctk.CTkToplevel):
     """
@@ -9,7 +9,7 @@ class NuevoProductoFormMejorado(ctk.CTkToplevel):
     def __init__(self, parent, on_create=None):
         super().__init__(parent)
         self.title("Nuevo Producto")
-        self.geometry("600x750")
+        self.geometry("600x650")
         self.transient(parent)
         self.grab_set()
 
@@ -115,34 +115,7 @@ class NuevoProductoFormMejorado(ctk.CTkToplevel):
         )
         self.descripcion.pack(fill="x", padx=10)
 
-        # Categoría
-        ctk.CTkLabel(
-            main, 
-            text="Categoría", 
-            anchor="w",
-            font=("Segoe UI", 12),
-            text_color="#666666"
-        ).pack(fill="x", padx=10, pady=(15, 5))
-        
-        # Cargar categorías
-        try:
-            categorias = obtener_categorias()
-            categorias_nombres = [c["nombre"] for c in categorias]
-            self.categorias_dict = {c["nombre"]: c["id_categoria"] for c in categorias}
-        except:
-            categorias_nombres = ["Ropa", "Calzado", "Accesorios"]
-            self.categorias_dict = {"Ropa": 1, "Calzado": 2, "Accesorios": 3}
-        
-        self.categoria = ctk.CTkComboBox(
-            main, 
-            values=categorias_nombres,
-            height=45,
-            border_width=2,
-            corner_radius=10,
-            font=("Segoe UI", 12)
-        )
-        self.categoria.set(categorias_nombres[0] if categorias_nombres else "Ropa")
-        self.categoria.pack(fill="x", padx=10)
+
 
         # Precio y Stock en la misma fila
         row_frame = ctk.CTkFrame(main, fg_color="transparent")
@@ -256,8 +229,7 @@ class NuevoProductoFormMejorado(ctk.CTkToplevel):
         codigo = self.codigo.get().strip()
         codigo_barras = self.codigo_barras.get().strip()
         descripcion = self.descripcion.get().strip()
-        categoria_nombre = self.categoria.get()
-        id_categoria = self.categorias_dict.get(categoria_nombre, 1)
+        id_categoria = None  # Sin categorías
 
         # Validar código único
         if codigo and not codigo_disponible(codigo):
@@ -272,6 +244,14 @@ class NuevoProductoFormMejorado(ctk.CTkToplevel):
         # Crear producto
         if agregar_producto(nombre, descripcion, precio, stock, codigo, codigo_barras, id_categoria):
             messagebox.showinfo("Éxito", f"Producto '{nombre}' creado correctamente")
+            
+            # Notificar nuevo producto
+            try:
+                from utils.notificaciones import notificar_nuevo_producto
+                notificar_nuevo_producto()
+            except:
+                pass
+            
             if self.on_create:
                 self.on_create()
             self.destroy()

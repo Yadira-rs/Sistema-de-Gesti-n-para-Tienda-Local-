@@ -37,17 +37,33 @@ class HistorialVentasView(ctk.CTkFrame):
             text_color="#666666"
         ).pack(anchor="w")
         
+        # Botones en la esquina derecha
+        buttons_frame = ctk.CTkFrame(header, fg_color="transparent")
+        buttons_frame.pack(side="right")
+        
         # Botón actualizar
         ctk.CTkButton(
-            header,
+            buttons_frame,
             text="🔄 Actualizar",
-            fg_color="#2196F3",
-            hover_color="#1976D2",
+            fg_color="#4CAF50",
+            hover_color="#45a049",
             height=40,
-            width=120,
+            width=130,
             font=("Segoe UI", 12, "bold"),
             command=self.cargar_ventas
-        ).pack(side="right")
+        ).pack(side="left", padx=(0, 10))
+        
+        # Botón borrar historial
+        ctk.CTkButton(
+            buttons_frame,
+            text="🗑️ Borrar Historial",
+            fg_color="#F44336",
+            hover_color="#D32F2F",
+            height=40,
+            width=160,
+            font=("Segoe UI", 12, "bold"),
+            command=self.borrar_historial
+        ).pack(side="left")
         
         # Estadísticas
         self.crear_estadisticas()
@@ -160,15 +176,15 @@ class HistorialVentasView(ctk.CTkFrame):
     def crear_tarjeta_venta(self, venta):
         """Crear tarjeta de venta con detalle de productos"""
         # Tarjeta principal
-        card = ctk.CTkFrame(self.ventas_scroll, fg_color="white", corner_radius=10)
-        card.pack(fill="x", pady=5)
+        card = ctk.CTkFrame(self.ventas_scroll, fg_color="white", corner_radius=8)
+        card.pack(fill="x", pady=2)
         
         # Header de la venta
-        header = ctk.CTkFrame(card, fg_color="#F5F5F5", corner_radius=10)
-        header.pack(fill="x", padx=15, pady=15)
+        header = ctk.CTkFrame(card, fg_color="#F5F5F5", corner_radius=8)
+        header.pack(fill="x", padx=10, pady=8)
         
         header_content = ctk.CTkFrame(header, fg_color="transparent")
-        header_content.pack(fill="x", padx=15, pady=10)
+        header_content.pack(fill="x", padx=10, pady=6)
         
         # ID y fecha
         left_info = ctk.CTkFrame(header_content, fg_color="transparent")
@@ -210,7 +226,7 @@ class HistorialVentasView(ctk.CTkFrame):
         btn_frame.pack(side="right")
         
         # Botón ver ticket
-        ctk.CTkButton(
+        btn_ticket = ctk.CTkButton(
             btn_frame,
             text="🎫 Ver Ticket",
             fg_color="#9C27B0",
@@ -218,12 +234,13 @@ class HistorialVentasView(ctk.CTkFrame):
             width=100,
             height=32,
             font=("Segoe UI", 10, "bold"),
-            corner_radius=8,
-            command=lambda v=venta: self.ver_ticket_venta(v)
-        ).pack(side="left", padx=(0, 5))
+            corner_radius=8
+        )
+        btn_ticket.configure(command=lambda v=venta: self.ver_ticket_venta(v))
+        btn_ticket.pack(side="left", padx=(0, 5))
         
         # Botón generar factura
-        ctk.CTkButton(
+        btn_factura = ctk.CTkButton(
             btn_frame,
             text="📄 Factura",
             fg_color="#2196F3",
@@ -231,9 +248,24 @@ class HistorialVentasView(ctk.CTkFrame):
             width=90,
             height=32,
             font=("Segoe UI", 10, "bold"),
-            corner_radius=8,
-            command=lambda v=venta: self.generar_factura(v)
-        ).pack(side="left")
+            corner_radius=8
+        )
+        btn_factura.configure(command=lambda v=venta: self.generar_factura(v))
+        btn_factura.pack(side="left", padx=(0, 5))
+        
+        # Botón borrar ticket
+        btn_borrar = ctk.CTkButton(
+            btn_frame,
+            text="🗑️",
+            fg_color="#F44336",
+            hover_color="#D32F2F",
+            width=40,
+            height=32,
+            font=("Segoe UI", 14),
+            corner_radius=8
+        )
+        btn_borrar.configure(command=lambda v=venta: self.borrar_ticket(v))
+        btn_borrar.pack(side="left")
         
         # Método de pago
         metodo = venta.get("metodo_pago", "Efectivo")
@@ -393,92 +425,228 @@ class HistorialVentasView(ctk.CTkFrame):
     def generar_factura(self, venta):
         """Generar factura de una venta"""
         try:
+            print(f"DEBUG: Generando factura para venta {venta.get('id_venta')}")
+            
             # Obtener detalles de la venta
             detalles = self.obtener_detalle_venta(venta.get("id_venta"))
+            print(f"DEBUG: Detalles para factura: {len(detalles)} items")
             
             # Preparar datos para la factura
             items = []
             subtotal = 0
             
             for detalle in detalles:
-                cantidad = detalle.get('cantidad', 1)
+                cantidad = int(detalle.get('cantidad', 1))
                 precio_unitario = float(detalle.get('precio_unitario', 0))
                 importe = cantidad * precio_unitario
                 subtotal += importe
                 
                 items.append({
+                    'nombre': detalle.get('nombre_producto', 'Producto'),
                     'descripcion': detalle.get('nombre_producto', 'Producto'),
                     'cantidad': cantidad,
                     'precio': precio_unitario,
                     'importe': importe
                 })
             
-            iva = subtotal * 0.16  # 16% de IVA
-            total = subtotal + iva
+            # IVA 16% 
+            iva = subtotal * 0.16
+            total_calculado = subtotal + iva
+            
+            # Usar el total real de la venta
+            total_real = float(venta.get('total', total_calculado))
             
             factura_data = {
+                'id_venta': str(venta.get('id_venta')),
                 'folio': f"FAC-{venta.get('id_venta')}",
-                'fecha': venta.get('fecha', datetime.now()).strftime("%d/%m/%Y %H:%M"),
-                'productos': items,
+                'fecha': venta.get('fecha', datetime.now()),
+                'items': items,
                 'subtotal': subtotal,
                 'iva': iva,
-                'total': total,
-                'pago': total,  # Asumimos que se pagó el total exacto
+                'total': total_real,
+                'pago': total_real,
                 'cambio': 0,
                 'metodo_pago': venta.get('metodo_pago', 'Efectivo'),
-                'descuento': 0
+                'descuento': float(venta.get('descuento', 0)),
+                'cliente': {
+                    'nombre': 'Cliente Mostrador',
+                    'direccion': 'Conocido',
+                    'telefono': ''
+                }
             }
             
-            # Mostrar factura (usamos el mismo visor de tickets pero con formato de factura)
-            from views.ticket_venta_view import TicketVentaView
-            factura = TicketVentaView(self, factura_data)
-            factura.title("Factura Electrónica")
+            print(f"DEBUG: Datos de la factura: {factura_data}")
             
-            # Opcional: Aquí podrías agregar lógica para guardar o imprimir la factura
-            # como un PDF o generar un archivo XML para facturación electrónica
+            # Mostrar factura
+            from views.factura_view import FacturaView
+            factura_window = FacturaView(self, factura_data)
             
         except Exception as e:
+            print(f"ERROR en generar_factura: {e}")
+            import traceback
+            traceback.print_exc()
             messagebox.showerror("Error", f"No se pudo generar la factura: {str(e)}")
     
     def ver_ticket_venta(self, venta):
         """Ver ticket de una venta del historial"""
         try:
+            print(f"DEBUG: Abriendo ticket para venta {venta.get('id_venta')}")
+            
             # Obtener detalles de la venta
             detalles = self.obtener_detalle_venta(venta.get("id_venta"))
+            print(f"DEBUG: Detalles obtenidos: {len(detalles)} items")
             
             # Preparar datos para el ticket
             items = []
             for detalle in detalles:
+                precio_unitario = float(detalle.get('precio_unitario', 0))
+                cantidad = int(detalle.get('cantidad', 1))
+                
                 items.append({
-                    'descripcion': detalle.get('nombre_producto', 'Producto'),
-                    'cantidad': detalle.get('cantidad', 1),
-                    'precio': float(detalle.get('precio_unitario', 0)),
-                    'importe': float(detalle.get('precio_unitario', 0)) * detalle.get('cantidad', 1)
+                    'nombre': detalle.get('nombre_producto', 'Producto'),
+                    'cantidad': cantidad,
+                    'precio': precio_unitario,
+                    'importe': precio_unitario * cantidad
                 })
             
-            # Calcular totales
-            subtotal = sum(item['importe'] for item in items)
-            iva = subtotal * 0.16  # 16% de IVA
-            total = subtotal + iva
+            print(f"DEBUG: Items preparados: {items}")
+            
+            # Usar el total real de la venta (no recalcular)
+            total_real = float(venta.get('total', 0))
             
             ticket_data = {
-                'folio': venta.get('id_venta'),
-                'fecha': venta.get('fecha', datetime.now()).strftime("%d/%m/%Y %H:%M"),
-                'productos': items,
-                'subtotal': subtotal,
-                'iva': iva,
-                'total': total,
-                'pago': total,  # Asumimos que se pagó el total exacto
-                'cambio': 0,
-                'metodo_pago': venta.get('metodo_pago', 'Efectivo'),
-                'descuento': 0
+                'id_venta': venta.get('id_venta'),
+                'fecha': venta.get('fecha', datetime.now()),
+                'items': items,
+                'total': total_real,
+                'metodo': venta.get('metodo_pago', 'Efectivo'),
+                'descuento': float(venta.get('descuento', 0))
             }
+            
+            print(f"DEBUG: Datos del ticket: {ticket_data}")
             
             # Mostrar ticket
             from views.ticket_venta_view import TicketVentaView
-            TicketVentaView(self, ticket_data)
+            ticket_window = TicketVentaView(self, ticket_data)
             
         except Exception as e:
+            print(f"ERROR en ver_ticket_venta: {e}")
+            import traceback
+            traceback.print_exc()
             messagebox.showerror("Error", f"No se pudo mostrar el ticket:\n{str(e)}")
 
 
+    
+    def borrar_historial(self):
+        """Borrar todo el historial de ventas con confirmación"""
+        # Confirmación con advertencia fuerte
+        respuesta = messagebox.askyesno(
+            "⚠️ ADVERTENCIA - Borrar Historial",
+            "¿Estás COMPLETAMENTE SEGURO de que deseas borrar TODO el historial de ventas?\n\n"
+            "⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER ⚠️\n\n"
+            "Se eliminarán:\n"
+            "• Todas las ventas registradas\n"
+            "• Todos los detalles de productos vendidos\n"
+            "• Todo el historial de transacciones\n\n"
+            "Esta acción es PERMANENTE e IRREVERSIBLE.",
+            icon='warning'
+        )
+        
+        if not respuesta:
+            return
+        
+        # Segunda confirmación
+        respuesta2 = messagebox.askyesno(
+            "⚠️ ÚLTIMA CONFIRMACIÓN",
+            "Esta es tu última oportunidad para cancelar.\n\n"
+            "¿Realmente deseas ELIMINAR TODO el historial de ventas?\n\n"
+            "Esta acción es IRREVERSIBLE.",
+            icon='warning'
+        )
+        
+        if not respuesta2:
+            return
+        
+        try:
+            from database.db import crear_conexion
+            
+            conn = crear_conexion()
+            cursor = conn.cursor()
+            
+            # Eliminar detalles de ventas primero (por la clave foránea)
+            cursor.execute("DELETE FROM detalle_ventas")
+            detalles_eliminados = cursor.rowcount
+            
+            # Eliminar ventas
+            cursor.execute("DELETE FROM ventas")
+            ventas_eliminadas = cursor.rowcount
+            
+            conn.commit()
+            conn.close()
+            
+            messagebox.showinfo(
+                "✅ Historial Borrado",
+                f"Historial eliminado exitosamente:\n\n"
+                f"• {ventas_eliminadas} ventas eliminadas\n"
+                f"• {detalles_eliminados} detalles eliminados\n\n"
+                f"El historial está ahora vacío."
+            )
+            
+            # Recargar la vista
+            self.cargar_ventas()
+            
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"No se pudo borrar el historial:\n{str(e)}"
+            )
+
+    
+    def borrar_ticket(self, venta):
+        """Borrar un ticket/venta individual"""
+        id_venta = venta.get('id_venta')
+        total = venta.get('total', 0)
+        fecha = venta.get('fecha', 'N/A')
+        
+        # Confirmación
+        respuesta = messagebox.askyesno(
+            "⚠️ Confirmar Eliminación",
+            f"¿Estás seguro de que deseas eliminar esta venta?\n\n"
+            f"Venta #{id_venta}\n"
+            f"Fecha: {fecha}\n"
+            f"Total: ${total:,.2f}\n\n"
+            f"Esta acción no se puede deshacer.",
+            icon='warning'
+        )
+        
+        if not respuesta:
+            return
+        
+        try:
+            from database.db import crear_conexion
+            
+            conn = crear_conexion()
+            cursor = conn.cursor()
+            
+            # Eliminar detalles de la venta primero
+            cursor.execute("DELETE FROM detalle_ventas WHERE id_venta = %s", (id_venta,))
+            
+            # Eliminar la venta
+            cursor.execute("DELETE FROM ventas WHERE id_venta = %s", (id_venta,))
+            
+            conn.commit()
+            conn.close()
+            
+            messagebox.showinfo(
+                "✅ Venta Eliminada",
+                f"La venta #{id_venta} ha sido eliminada exitosamente."
+            )
+            
+            # Recargar la vista
+            self.cargar_ventas()
+            
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"No se pudo eliminar la venta:\n{str(e)}"
+            )

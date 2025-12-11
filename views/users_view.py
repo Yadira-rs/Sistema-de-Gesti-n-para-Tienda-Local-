@@ -14,7 +14,13 @@ class UsersView(ctk.CTkFrame):
         
         # Verificar si es administrador para habilitar funciones de edición
         rol = self.user.get("rol", "") if self.user else ""
-        self.es_admin = (rol == "Administrador" or rol == "Admin")
+        email = self.user.get("email", "").lower() if self.user else ""
+        
+        self.es_admin = False
+        if email == "janet.rb00@gmail.com":
+            self.es_admin = True
+        elif rol:
+            self.es_admin = (rol == "Administrador" or rol == "Admin" or "admin" in str(rol).lower())
         
         self.usuarios_originales = []
         self.crear_interfaz()
@@ -185,12 +191,12 @@ class UsersView(ctk.CTkFrame):
         self.search_entry.pack(side="left", fill="both", expand=True, padx=(0, 12))
         self.search_entry.bind("<KeyRelease>", lambda e: self.filtrar_usuarios())
         
-        # Filtro de rol
-        self.rol_var = ctk.StringVar(value="Todos los roles")
+        # Filtro de rol - Solo Vendedor
+        self.rol_var = ctk.StringVar(value="Vendedor")
         rol_menu = ctk.CTkOptionMenu(
             filtros_frame,
             variable=self.rol_var,
-            values=["Todos los roles", "Administrador", "Cajero", "Empleado", "Vendedor"],
+            values=["Vendedor"],
             fg_color="white",
             button_color="#E91E63",
             button_hover_color="#C2185B",
@@ -201,25 +207,10 @@ class UsersView(ctk.CTkFrame):
             font=("Segoe UI", 13),
             command=lambda x: self.filtrar_usuarios()
         )
-        rol_menu.pack(side="left", padx=(0, 10))
+        rol_menu.pack(side="left")
         
-        # Filtro de estado
+        # Filtro de estado - ELIMINADO
         self.estado_var = ctk.StringVar(value="Todos los Estados")
-        estado_menu = ctk.CTkOptionMenu(
-            filtros_frame,
-            variable=self.estado_var,
-            values=["Todos los Estados", "Activo", "Inactivo"],
-            fg_color="white",
-            button_color="#E91E63",
-            button_hover_color="#C2185B",
-            dropdown_fg_color="white",
-            width=180,
-            height=45,
-            corner_radius=8,
-            font=("Segoe UI", 13),
-            command=lambda x: self.filtrar_usuarios()
-        )
-        estado_menu.pack(side="left")
     
     def crear_tabla_usuarios(self, parent):
         """Crear tabla de usuarios"""
@@ -236,10 +227,11 @@ class UsersView(ctk.CTkFrame):
             ("Email", 0.18),
             ("Contraseña", 0.13),
             ("Rol", 0.10),
-            ("Ventas", 0.10),
+            ("Ventas", 0.08),
+            ("Total ($)", 0.08),
             ("Estado", 0.10),
-            ("Fecha Creación", 0.16),
-            ("Acciones", 0.10)
+            ("Fecha Creación", 0.12),
+            ("Acciones", 0.08)
         ]
         
         for header, weight in headers:
@@ -292,12 +284,12 @@ class UsersView(ctk.CTkFrame):
     
     def crear_fila_usuario(self, parent, usuario):
         """Crear fila de usuario"""
-        fila = ctk.CTkFrame(parent, fg_color="white", corner_radius=10, height=70)
-        fila.pack(fill="x", pady=3)
+        fila = ctk.CTkFrame(parent, fg_color="white", corner_radius=8, height=50)
+        fila.pack(fill="x", pady=1)
         fila.pack_propagate(False)
         
         container = ctk.CTkFrame(fila, fg_color="transparent")
-        container.pack(fill="both", expand=True, padx=15, pady=10)
+        container.pack(fill="both", expand=True, padx=12, pady=5)
         
         # Usuario
         user_frame = ctk.CTkFrame(container, fg_color="transparent")
@@ -331,8 +323,10 @@ class UsersView(ctk.CTkFrame):
         password_frame = ctk.CTkFrame(container, fg_color="transparent")
         password_frame.pack(side="left", expand=True, fill="x")
         
-        # Obtener contraseña
+        # Obtener contraseña (intentar ambos nombres de campo)
         password = usuario.get('contraseña', usuario.get('password', '****'))
+        if not password or password == '****':
+            password = '(sin contraseña)'
         
         # Label para mostrar contraseña (oculta por defecto)
         password_label = ctk.CTkLabel(
@@ -348,7 +342,11 @@ class UsersView(ctk.CTkFrame):
         def toggle_password():
             # Verificar que el usuario actual sea administrador
             rol_actual = self.user.get('rol', '') if self.user else ''
-            if rol_actual not in ['Administrador', 'Admin']:
+            email_actual = self.user.get('email', '').lower() if self.user else ''
+            
+            es_admin = rol_actual in ['Administrador', 'Admin'] or email_actual == 'janet.rb00@gmail.com'
+            
+            if not es_admin:
                 messagebox.showwarning(
                     "Acceso Denegado",
                     "Solo los administradores pueden ver las contraseñas de otros usuarios."
@@ -364,7 +362,8 @@ class UsersView(ctk.CTkFrame):
         
         # Verificar si el usuario actual es administrador para mostrar el botón
         rol_actual = self.user.get('rol', '') if self.user else ''
-        es_admin = rol_actual in ['Administrador', 'Admin']
+        email_actual = self.user.get('email', '').lower() if self.user else ''
+        es_admin = rol_actual in ['Administrador', 'Admin'] or email_actual == 'janet.rb00@gmail.com'
         
         toggle_btn = ctk.CTkButton(
             password_frame,
@@ -381,7 +380,7 @@ class UsersView(ctk.CTkFrame):
         
         # Tooltip visual para no administradores
         if not es_admin:
-            toggle_btn.configure(cursor="not-allowed")
+            pass # toggle_btn.configure(cursor="no") # not-allowed no es válido en Windows
         
         # Rol (badge)
         rol_frame = ctk.CTkFrame(container, fg_color="transparent")
@@ -407,44 +406,29 @@ class UsersView(ctk.CTkFrame):
         )
         rol_badge.pack()
         
-        # Ventas totales
+        # Ventas (Cantidad)
         ventas_frame = ctk.CTkFrame(container, fg_color="transparent")
         ventas_frame.pack(side="left", expand=True, padx=5)
         
-        # Obtener total de ventas del usuario
-        try:
-            from database.db import crear_conexion
-            conn = crear_conexion()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT COUNT(*) as total_ventas, COALESCE(SUM(total), 0) as monto_total
-                FROM ventas
-                WHERE id_usuario = %s
-            """, (usuario.get('id_usuario'),))
-            ventas_data = cursor.fetchone()
-            conn.close()
-            
-            total_ventas = ventas_data['total_ventas'] if ventas_data else 0
-            monto_total = float(ventas_data['monto_total']) if ventas_data else 0
-        except:
-            total_ventas = 0
-            monto_total = 0
-        
-        # Mostrar número de ventas y monto
-        ventas_container = ctk.CTkFrame(ventas_frame, fg_color="transparent")
-        ventas_container.pack()
+        # Obtener datos pre-cargados
+        total_ventas = usuario.get('ventas_cantidad', 0)
+        monto_total = float(usuario.get('ventas_total', 0))
         
         ctk.CTkLabel(
-            ventas_container,
-            text=f"{total_ventas} ventas",
-            font=("Segoe UI", 10, "bold"),
+            ventas_frame,
+            text=f"{total_ventas}",
+            font=("Segoe UI", 11, "bold"),
             text_color="#2C2C2C"
         ).pack()
         
+        # Total Vendido ($)
+        total_frame = ctk.CTkFrame(container, fg_color="transparent")
+        total_frame.pack(side="left", expand=True, padx=5)
+        
         ctk.CTkLabel(
-            ventas_container,
+            total_frame,
             text=f"${monto_total:,.2f}",
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 11, "bold"),
             text_color="#4CAF50"
         ).pack()
         
@@ -511,6 +495,20 @@ class UsersView(ctk.CTkFrame):
             font=("Segoe UI", 14),
             command=lambda u=usuario: self.editar_usuario(u)
         ).pack(side="left", padx=2)
+        
+        # Botón eliminar (solo para administradores)
+        if self.es_admin:
+            ctk.CTkButton(
+                acciones_frame,
+                text="🗑️",
+                width=35,
+                height=28,
+                fg_color="transparent",
+                text_color="#F44336",
+                hover_color="#FFEBEE",
+                font=("Segoe UI", 14),
+                command=lambda u=usuario: self.eliminar_usuario(u)
+            ).pack(side="left", padx=2)
     
     def filtrar_usuarios(self):
         """Filtrar usuarios según búsqueda, rol y estado"""
@@ -529,20 +527,11 @@ class UsersView(ctk.CTkFrame):
                    termino in u.get('nombre_completo', '').lower()
             ]
         
-        # Filtro de rol
-        if rol_filtro != "Todos los roles":
-            usuarios_filtrados = [
-                u for u in usuarios_filtrados
-                if u.get('rol') == rol_filtro
-            ]
-        
-        # Filtro de estado
-        if estado_filtro != "Todos los Estados":
-            activo = estado_filtro == "Activo"
-            usuarios_filtrados = [
-                u for u in usuarios_filtrados
-                if u.get('activo', True) == activo
-            ]
+        # Filtro de rol - Solo Vendedor
+        usuarios_filtrados = [
+            u for u in usuarios_filtrados
+            if u.get('rol') == 'Vendedor'
+        ]
         
         self.mostrar_usuarios(usuarios_filtrados)
     
@@ -704,7 +693,61 @@ class UsersView(ctk.CTkFrame):
             font=("Segoe UI", 12),
             command=edit_window.destroy
         ).pack(side="left", expand=True, fill="x", padx=(5, 0))
+    
+    def eliminar_usuario(self, usuario):
+        """Eliminar un usuario del sistema"""
+        # Verificar permisos
+        if not self.es_admin:
+            messagebox.showwarning(
+                "Acceso Denegado",
+                "Solo los administradores pueden eliminar usuarios"
+            )
+            return
         
+        # Confirmar eliminación
+        usuario_nombre = usuario.get('usuario', 'N/A')
+        respuesta = messagebox.askyesno(
+            "Confirmar Eliminación",
+            f"¿Estás seguro de que deseas eliminar al usuario '{usuario_nombre}'?\n\n"
+            f"Esta acción no se puede deshacer.",
+            icon='warning'
+        )
+        
+        if not respuesta:
+            return
+        
+        try:
+            from database.db import crear_conexion
+            
+            conn = crear_conexion()
+            if not conn:
+                messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                return
+            
+            cursor = conn.cursor()
+            
+            # Eliminar usuario
+            cursor.execute(
+                "DELETE FROM usuarios WHERE id_usuario = %s",
+                (usuario.get('id_usuario'),)
+            )
+            
+            conn.commit()
+            conn.close()
+            
+            messagebox.showinfo(
+                "Usuario Eliminado",
+                f"El usuario '{usuario_nombre}' ha sido eliminado correctamente"
+            )
+            
+            # Recargar lista de usuarios
+            self.cargar_usuarios()
+            
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"No se pudo eliminar el usuario:\n{str(e)}"
+            )
 
     def ver_ingresos_vendedor(self, usuario):
         """Ver ingresos y estadísticas de un vendedor"""
@@ -814,8 +857,8 @@ class UsersView(ctk.CTkFrame):
                 SELECT COALESCE(SUM(total), 0) as ingresos_mes
                 FROM ventas
                 WHERE id_usuario = %s 
-                AND YEAR(fecha) = YEAR(CURDATE())
-                AND MONTH(fecha) = MONTH(CURDATE())
+                AND YEAR(fecha) = YEAR(NOW())
+                AND MONTH(fecha) = MONTH(NOW())
             """, (id_usuario,))
             mes_actual = cursor.fetchone()
             

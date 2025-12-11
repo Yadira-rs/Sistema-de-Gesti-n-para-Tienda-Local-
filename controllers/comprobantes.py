@@ -1,5 +1,5 @@
 """
-Controlador de Comprobantes de Venta Mejorado
+Controlador de Comprobantes de Venta - Diseño Elegante
 Janet Rosa Bici - Sistema de Ventas
 """
 
@@ -7,30 +7,31 @@ from datetime import datetime
 import os
 import tempfile
 import webbrowser
+import base64
 
 def generar_comprobante_venta(venta, productos):
-    """Generar comprobante de venta mejorado en HTML"""
+    """Generar factura con diseño elegante"""
     try:
         # Calcular totales
         subtotal = sum(float(p.get('precio_unitario', 0)) * int(p.get('cantidad', 1)) for p in productos)
         descuento = float(venta.get('descuento', 0))
+        iva = subtotal * 0.16  # IVA 16%
         total = float(venta.get('total', 0))
         
         # Generar filas de productos
         filas_html = ""
-        for i, producto in enumerate(productos, 1):
+        for producto in productos:
             cantidad = producto.get('cantidad', 1)
             nombre = producto.get('nombre', 'Producto')
             precio = float(producto.get('precio_unitario', 0))
             importe = cantidad * precio
             
             filas_html += f"""
-            <tr>
-                <td class="td-center">{i}</td>
-                <td>{nombre}</td>
-                <td class="td-center">{cantidad}</td>
-                <td class="td-right">${precio:,.2f}</td>
-                <td class="td-right td-bold">${importe:,.2f}</td>
+            <tr class="producto-row">
+                <td class="cantidad">{cantidad}</td>
+                <td class="descripcion">{nombre}</td>
+                <td class="precio">${precio:,.2f}</td>
+                <td class="total">${importe:,.2f}</td>
             </tr>
             """
         
@@ -39,105 +40,118 @@ def generar_comprobante_venta(venta, productos):
         if isinstance(fecha, str):
             fecha_str = fecha
         else:
-            fecha_str = fecha.strftime("%d/%m/%Y %H:%M")
+            fecha_str = fecha.strftime("%d de %B de %Y")
         
-        # HTML mejorado
+        # Obtener logo en base64
+        logo_html = '<div class="logo">🚲</div>'
+        try:
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            image_path = os.path.join(base_path, "WhatsApp Image 2025-12-02 at 11.52.41 AM.jpeg")
+            if os.path.exists(image_path):
+                with open(image_path, "rb") as img_file:
+                    b64_string = base64.b64encode(img_file.read()).decode('utf-8')
+                    # Ajustar tamaño del logo en impresión
+                    logo_html = f'<img src="data:image/jpeg;base64,{b64_string}" alt="Logo" style="max-height: 100px; max-width: 200px; margin-bottom: 10px;">'
+        except Exception as e:
+            print(f"No se pudo cargar logo para impresión: {e}")
+
+        # HTML con diseño elegante
         html_content = f"""
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante #{venta.get('id_venta', 'N/A')}</title>
+    <title>Factura #{venta.get('id_venta', 'N/A')}</title>
     <style>
-        @page {{ margin: 1.5cm; }}
+        @page {{ margin: 2cm; }}
         @media print {{ .no-print {{ display: none; }} }}
         
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         
         body {{
-            font-family: 'Segoe UI', Arial, sans-serif;
-            padding: 30px;
-            font-size: 13px;
-            color: #333;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            color: #666;
             background: #f5f5f5;
+            padding: 40px 20px;
         }}
         
-        .container {{
-            max-width: 900px;
+        .factura-container {{
+            max-width: 800px;
             margin: 0 auto;
             background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 50px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }}
         
         .header {{
-            text-align: center;
-            padding-bottom: 25px;
-            margin-bottom: 30px;
-            border-bottom: 3px solid #E91E63;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+        }}
+        
+        .logo-section {{
+            flex: 1;
+        }}
+        
+        .logo {{
+            font-size: 48px;
+            margin-bottom: 10px;
         }}
         
         .business-name {{
-            font-size: 36px;
-            font-weight: bold;
+            font-family: 'Brush Script MT', cursive;
+            font-size: 32px;
             font-style: italic;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
+            color: #333;
+            margin-bottom: 10px;
         }}
         
         .rosa {{ color: #E91E63; }}
         
-        .subtitle {{
-            font-size: 14px;
+        .business-info {{
+            font-size: 13px;
             color: #999;
+            line-height: 1.6;
+        }}
+        
+        .factura-info {{
+            text-align: right;
+        }}
+        
+        .factura-title {{
+            font-family: 'Brush Script MT', cursive;
+            font-size: 48px;
+            font-style: italic;
+            color: #666;
             margin-bottom: 15px;
         }}
         
-        .doc-title {{
-            font-size: 24px;
+        .factura-details {{
+            font-size: 13px;
+            color: #999;
+            line-height: 1.8;
+        }}
+        
+        .factura-number {{
             font-weight: bold;
-            color: #E91E63;
-            margin-top: 10px;
-            letter-spacing: 2px;
-        }}
-        
-        .info-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            background: #F8F9FA;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }}
-        
-        .info-item {{
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-        }}
-        
-        .info-label {{
-            font-weight: 600;
-            color: #666;
-        }}
-        
-        .info-value {{
             color: #333;
-            font-weight: 500;
         }}
         
-        table {{
+        .productos-table {{
             width: 100%;
+            margin: 40px 0;
             border-collapse: collapse;
-            margin: 25px 0;
         }}
         
-        th {{
-            background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+        .productos-table thead {{
+            background: #5a5a5a;
             color: white;
-            padding: 15px 12px;
+        }}
+        
+        .productos-table th {{
+            padding: 15px;
             text-align: left;
             font-size: 13px;
             font-weight: 600;
@@ -145,24 +159,66 @@ def generar_comprobante_venta(venta, productos):
             letter-spacing: 0.5px;
         }}
         
-        td {{
-            padding: 12px;
-            border-bottom: 1px solid #E0E0E0;
+        .productos-table th.cantidad {{ width: 15%; text-align: center; }}
+        .productos-table th.descripcion {{ width: 40%; }}
+        .productos-table th.precio {{ width: 22.5%; text-align: right; }}
+        .productos-table th.total {{ width: 22.5%; text-align: right; }}
+        
+        .producto-row {{
+            background: #f5f5f5;
         }}
         
-        tr:hover {{
-            background: #FFF0F5;
+        .producto-row:nth-child(even) {{
+            background: #e8e8e8;
         }}
         
-        .td-center {{ text-align: center; }}
-        .td-right {{ text-align: right; }}
-        .td-bold {{ font-weight: 600; }}
+        .producto-row td {{
+            padding: 15px;
+            font-size: 14px;
+            color: #666;
+        }}
+        
+        .producto-row .cantidad {{
+            text-align: center;
+            font-weight: bold;
+        }}
+        
+        .producto-row .precio {{
+            text-align: right;
+        }}
+        
+        .producto-row .total {{
+            text-align: right;
+            font-weight: bold;
+            color: #333;
+        }}
+        
+        .footer-section {{
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }}
+        
+        .cliente-info {{
+            flex: 1;
+        }}
+        
+        .cliente-title {{
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }}
+        
+        .cliente-details {{
+            font-size: 13px;
+            color: #999;
+            line-height: 1.6;
+        }}
         
         .totales {{
-            background: linear-gradient(135deg, #FFF0F5 0%, #FFE4EC 100%);
-            padding: 25px;
-            border-radius: 10px;
-            margin-top: 25px;
+            width: 300px;
+            text-align: right;
         }}
         
         .total-row {{
@@ -170,55 +226,56 @@ def generar_comprobante_venta(venta, productos):
             justify-content: space-between;
             padding: 10px 0;
             font-size: 15px;
+            color: #666;
         }}
         
-        .total-row.descuento {{
-            color: #FF9800;
+        .total-row.subtotal {{
+            border-bottom: 1px solid #e0e0e0;
+        }}
+        
+        .total-row.final {{
+            border-top: 2px solid #333;
+            padding-top: 15px;
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }}
+        
+        .total-row .label {{
             font-weight: 600;
         }}
         
-        .total-final {{
+        .notas {{
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+        }}
+        
+        .notas-title {{
+            font-family: 'Brush Script MT', cursive;
             font-size: 24px;
-            font-weight: bold;
-            color: #E91E63;
-            border-top: 2px solid #E91E63;
-            padding-top: 15px;
-            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+            margin-bottom: 15px;
         }}
         
-        .nota {{
-            background: #FFF3E0;
+        .notas-content {{
+            background: #333;
+            color: white;
             padding: 20px;
-            border-radius: 10px;
-            margin-top: 25px;
-            border-left: 5px solid #FF9800;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
         }}
         
-        .nota-title {{
-            font-weight: bold;
-            color: #F57C00;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }}
-        
-        .footer {{
+        .print-button {{
             text-align: center;
-            margin-top: 40px;
-            padding-top: 25px;
-            border-top: 2px solid #E0E0E0;
-            color: #999;
-            font-size: 12px;
+            margin: 30px 0;
         }}
         
-        .footer-title {{
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-        }}
-        
-        .print-btn {{
-            background: #4CAF50;
+        .print-button button {{
+            background: #E91E63;
             color: white;
             border: none;
             padding: 15px 40px;
@@ -226,52 +283,49 @@ def generar_comprobante_venta(venta, productos):
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
-            margin: 20px auto;
-            display: block;
+            box-shadow: 0 4px 6px rgba(233, 30, 99, 0.3);
         }}
         
-        .print-btn:hover {{
-            background: #45a049;
+        .print-button button:hover {{
+            background: #C2185B;
         }}
     </style>
 </head>
 <body>
-    <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir Comprobante</button>
+    <div class="print-button no-print">
+        <button onclick="window.print()">🖨 Imprimir Factura</button>
+    </div>
     
-    <div class="container">
+    <div class="factura-container">
         <div class="header">
-            <div class="business-name">Janet <span class="rosa">Rosa</span> Bici</div>
-            <div class="subtitle">Sistema de Ventas</div>
-            <div class="doc-title">COMPROBANTE DE VENTA</div>
-        </div>
-        
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Folio:</span>
-                <span class="info-value">#{venta.get('id_venta', 'N/A')}</span>
+            <div class="logo-section">
+                {logo_html}
+                <div class="business-name">
+                    Janet <span class="rosa">Rosa</span> Bici
+                </div>
+                <div class="business-info">
+                    Sistema de Ventas<br>
+                    Tel: 555-1234-567
+                </div>
             </div>
-            <div class="info-item">
-                <span class="info-label">Fecha:</span>
-                <span class="info-value">{fecha_str}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Método de Pago:</span>
-                <span class="info-value">{venta.get('metodo_pago', 'Efectivo')}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Atendió:</span>
-                <span class="info-value">{venta.get('usuario', 'Vendedor')}</span>
+            
+            <div class="factura-info">
+                <div class="factura-title">Factura</div>
+                <div class="factura-details">
+                    <div class="factura-number">Nº: {venta.get('id_venta', 'N/A'):04d}</div>
+                    <div>{fecha_str}</div>
+                    <div>Nº de cuenta: {venta.get('id_venta', 'N/A'):04d}</div>
+                </div>
             </div>
         </div>
         
-        <table>
+        <table class="productos-table">
             <thead>
                 <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 45%;">Descripción</th>
-                    <th style="width: 15%;" class="td-center">Cantidad</th>
-                    <th style="width: 17.5%;" class="td-right">Precio Unit.</th>
-                    <th style="width: 17.5%;" class="td-right">Importe</th>
+                    <th class="cantidad">Cantidad</th>
+                    <th class="descripcion">Descripción</th>
+                    <th class="precio">Precio unitario</th>
+                    <th class="total">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -279,28 +333,39 @@ def generar_comprobante_venta(venta, productos):
             </tbody>
         </table>
         
-        <div class="totales">
-            <div class="total-row">
-                <span>Subtotal:</span>
-                <span>${subtotal:,.2f}</span>
+        <div class="footer-section">
+            <div class="cliente-info">
+                <div class="cliente-title">Cliente: {venta.get('cliente', 'Público General')}</div>
+                <div class="cliente-details">
+                    Método de pago: {venta.get('metodo_pago', 'Efectivo')}<br>
+                    Atendió: {venta.get('usuario', 'Vendedor')}
+                </div>
             </div>
-            {f'<div class="total-row descuento"><span>Descuento:</span><span>-${descuento:,.2f}</span></div>' if descuento > 0 else ''}
-            <div class="total-row total-final">
-                <span>TOTAL:</span>
-                <span>${total:,.2f}</span>
+            
+            <div class="totales">
+                <div class="total-row subtotal">
+                    <span class="label">Subtotal</span>
+                    <span>${subtotal:,.2f}</span>
+                </div>
+                <div class="total-row">
+                    <span class="label">IVA (16%)</span>
+                    <span>${iva:,.2f}</span>
+                </div>
+                {f'<div class="total-row"><span class="label">Descuento</span><span>-${descuento:,.2f}</span></div>' if descuento > 0 else ''}
+                <div class="total-row final">
+                    <span class="label">Total</span>
+                    <span>${total:,.2f}</span>
+                </div>
             </div>
         </div>
         
-        <div class="nota">
-            <div class="nota-title">📝 Nota Importante</div>
-            <p>Este comprobante es válido como constancia de compra. Si requiere factura fiscal (CFDI), 
-            solicítela dentro de los próximos 30 días presentando este comprobante.</p>
-        </div>
-        
-        <div class="footer">
-            <div class="footer-title">¡Gracias por su compra!</div>
-            <p>Janet Rosa Bici - Sistema de Ventas</p>
-            <p style="margin-top: 5px;">Este documento no es una factura fiscal</p>
+        <div class="notas">
+            <div class="notas-title">Notas</div>
+            <div class="notas-content">
+                Gracias por su compra. Este comprobante es válido como constancia de compra.
+                Para cualquier aclaración, favor de presentar este documento.
+                Janet Rosa Bici - Sistema de Ventas
+            </div>
         </div>
     </div>
 </body>
@@ -322,7 +387,7 @@ def guardar_y_abrir_comprobante(venta, productos):
         
         # Crear archivo temporal
         fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"comprobante_{venta.get('id_venta', 'N/A')}_{fecha_archivo}.html"
+        filename = f"factura_{venta.get('id_venta', 'N/A')}_{fecha_archivo}.html"
         
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(html_content)
@@ -346,7 +411,7 @@ def generar_comprobante_pdf(venta, productos):
         try:
             from weasyprint import HTML
             fecha_archivo = datetime.now().strftime("%Y%m%d_%H%M%S")
-            pdf_file = f"comprobante_{venta.get('id_venta', 'N/A')}_{fecha_archivo}.pdf"
+            pdf_file = f"factura_{venta.get('id_venta', 'N/A')}_{fecha_archivo}.pdf"
             HTML(string=html_content).write_pdf(pdf_file)
             return pdf_file
         except ImportError:

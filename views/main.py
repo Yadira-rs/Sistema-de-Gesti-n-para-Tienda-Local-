@@ -14,6 +14,9 @@ from views.users_view import UsersView
 from views.gestion_creditos_view import GestionCreditosView
 from views.perfil_view import PerfilView
 
+# Sistema de notificaciones
+from utils.notificaciones import registrar_app_principal
+
 class MainApp(tk.Tk):
     def __init__(self, user):
         super().__init__()
@@ -36,6 +39,9 @@ class MainApp(tk.Tk):
         self.create_menu()
         self.create_user_profile()
 
+        # Registrar en el sistema de notificaciones
+        registrar_app_principal(self)
+
         self.show_view(DashboardView)
 
     # -----------------------------------------------------
@@ -56,7 +62,9 @@ class MainApp(tk.Tk):
         
         # Solo el correo de administrador específico puede ser admin
         es_admin = False
-        if rol and email == "janet.rb00@gmail.com":
+        if email == "janet.rb00@gmail.com":
+            es_admin = True
+        elif rol:
             rol_lower = str(rol).strip().lower()
             print(f"Rol (en minúsculas): '{rol_lower}'")
             es_admin = "admin" in rol_lower
@@ -185,6 +193,9 @@ class MainApp(tk.Tk):
         try:
             view = view_class(self.content, self.user)
             view.pack(fill="both", expand=True)
+            
+            # Guardar referencia a la vista actual
+            self.current_view = view
                 
         except Exception as e:
             # Mostrar error
@@ -240,15 +251,17 @@ class MainApp(tk.Tk):
         
         # Color según rol (flexible para variaciones)
         rol_lower = rol.lower()
-        if "admin" in rol_lower:
+        # Janet también usa color rosa/admin
+        if "admin" in rol_lower or self.user.get("email", "").lower() == "janet.rb00@gmail.com":
             avatar_color = "#E91E63"
             bg_color = "#FCE4EC"
         elif "vendedor" in rol_lower:
             avatar_color = "#9C27B0"
             bg_color = "#F3E5F5"
         else:
-            avatar_color = "#4CAF50"
-            bg_color = "#E8F5E9"
+            # Cambiado a rosa como solicitado (antes verde #4CAF50)
+            avatar_color = "#E91E63"
+            bg_color = "#FCE4EC"
         
         # Botón de perfil horizontal compacto
         profile_btn = tk.Frame(

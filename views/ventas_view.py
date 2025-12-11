@@ -299,8 +299,8 @@ class VentasView(ctk.CTkFrame):
     
     def crear_tarjeta_producto(self, parent, producto, row, col):
         """Crear tarjeta de producto"""
-        card = ctk.CTkFrame(parent, fg_color="white", corner_radius=12, width=220, height=280)
-        card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+        card = ctk.CTkFrame(parent, fg_color="white", corner_radius=10, width=200, height=240)
+        card.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
         card.grid_propagate(False)
         
         # Hacer clickeable
@@ -308,8 +308,8 @@ class VentasView(ctk.CTkFrame):
         card.configure(cursor="hand2")
         
         # Icono
-        icon_frame = ctk.CTkFrame(card, fg_color="#FFE4E1", corner_radius=10, height=140)
-        icon_frame.pack(fill="x", padx=12, pady=12)
+        icon_frame = ctk.CTkFrame(card, fg_color="#FFE4E1", corner_radius=8, height=120)
+        icon_frame.pack(fill="x", padx=10, pady=8)
         icon_frame.pack_propagate(False)
         icon_frame.bind("<Button-1>", lambda e, p=producto: self.agregar_producto(p))
         
@@ -319,7 +319,7 @@ class VentasView(ctk.CTkFrame):
         
         # Info
         info = ctk.CTkFrame(card, fg_color="transparent")
-        info.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        info.pack(fill="both", expand=True, padx=10, pady=(0, 8))
         info.bind("<Button-1>", lambda e, p=producto: self.agregar_producto(p))
         
         # Nombre
@@ -416,11 +416,11 @@ class VentasView(ctk.CTkFrame):
     
     def crear_item_carrito(self, parent, item):
         """Crear item en el carrito"""
-        card = ctk.CTkFrame(parent, fg_color="white", corner_radius=10, border_width=1, border_color="#F0F0F0")
-        card.pack(fill="x", pady=5, padx=5)
+        card = ctk.CTkFrame(parent, fg_color="white", corner_radius=8, border_width=1, border_color="#F0F0F0")
+        card.pack(fill="x", pady=2, padx=3)
         
         container = ctk.CTkFrame(card, fg_color="transparent")
-        container.pack(fill="x", padx=12, pady=12)
+        container.pack(fill="x", padx=8, pady=6)
         
         # Nombre
         nombre = item["nombre"]
@@ -430,7 +430,7 @@ class VentasView(ctk.CTkFrame):
             font=("Segoe UI", 11, "bold"),
             text_color="#2C2C2C",
             anchor="w"
-        ).pack(anchor="w", pady=(0, 8))
+        ).pack(anchor="w", pady=(0, 4))
         
         # Fila inferior
         bottom_row = ctk.CTkFrame(container, fg_color="transparent")
@@ -553,12 +553,147 @@ class VentasView(ctk.CTkFrame):
         total = subtotal - descuento_monto
         metodo = self.metodo_pago.get()
         
-        mensaje = f"¿Confirmar venta?\n\nSubtotal: ${subtotal:.2f}\n"
-        if descuento_pct > 0:
-            mensaje += f"Descuento ({descuento_pct}%): -${descuento_monto:.2f}\n"
-        mensaje += f"Total: ${total:.2f}\nMétodo de pago: {metodo}"
+        # Mostrar diálogo de pago con cálculo de cambio
+        pago_dialog = ctk.CTkToplevel(self)
+        pago_dialog.title("Procesar Pago")
+        pago_dialog.geometry("450x400")
+        pago_dialog.transient(self)
+        pago_dialog.grab_set()
         
-        if not messagebox.askyesno("Confirmar venta", mensaje):
+        # Centrar ventana
+        pago_dialog.update_idletasks()
+        x = (pago_dialog.winfo_screenwidth() // 2) - (450 // 2)
+        y = (pago_dialog.winfo_screenheight() // 2) - (400 // 2)
+        pago_dialog.geometry(f"450x400+{x}+{y}")
+        
+        main_frame = ctk.CTkFrame(pago_dialog, fg_color="white")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Título
+        ctk.CTkLabel(
+            main_frame,
+            text="💳 Procesar Pago",
+            font=("Segoe UI", 22, "bold"),
+            text_color="#333333"
+        ).pack(pady=(0, 20))
+        
+        # Resumen de venta
+        resumen_frame = ctk.CTkFrame(main_frame, fg_color="#F5F5F5", corner_radius=10)
+        resumen_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            resumen_frame,
+            text=f"Subtotal: ${subtotal:.2f}",
+            font=("Segoe UI", 12),
+            text_color="#666666"
+        ).pack(padx=15, pady=(10, 2))
+        
+        if descuento_pct > 0:
+            ctk.CTkLabel(
+                resumen_frame,
+                text=f"Descuento ({descuento_pct}%): -${descuento_monto:.2f}",
+                font=("Segoe UI", 12),
+                text_color="#FF9800"
+            ).pack(padx=15, pady=2)
+        
+        ctk.CTkLabel(
+            resumen_frame,
+            text=f"TOTAL A PAGAR: ${total:.2f}",
+            font=("Segoe UI", 18, "bold"),
+            text_color="#E91E63"
+        ).pack(padx=15, pady=(5, 10))
+        
+        # Método de pago
+        ctk.CTkLabel(
+            main_frame,
+            text=f"Método de pago: {metodo}",
+            font=("Segoe UI", 12),
+            text_color="#666666"
+        ).pack(pady=(0, 15))
+        
+        # Campo de monto recibido
+        ctk.CTkLabel(
+            main_frame,
+            text="Monto recibido:",
+            font=("Segoe UI", 13, "bold"),
+            text_color="#333333"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        monto_entry = ctk.CTkEntry(
+            main_frame,
+            placeholder_text=f"${total:.2f}",
+            height=45,
+            font=("Segoe UI", 16),
+            justify="center"
+        )
+        monto_entry.pack(fill="x", pady=(0, 15))
+        monto_entry.insert(0, f"{total:.2f}")
+        
+        # Label para mostrar el cambio
+        cambio_label = ctk.CTkLabel(
+            main_frame,
+            text="Cambio: $0.00",
+            font=("Segoe UI", 16, "bold"),
+            text_color="#4CAF50"
+        )
+        cambio_label.pack(pady=(0, 20))
+        
+        # Función para calcular cambio en tiempo real
+        def calcular_cambio(*args):
+            try:
+                monto_recibido = float(monto_entry.get().replace("$", "").replace(",", ""))
+                cambio = monto_recibido - total
+                if cambio >= 0:
+                    cambio_label.configure(text=f"Cambio: ${cambio:.2f}", text_color="#4CAF50")
+                else:
+                    cambio_label.configure(text=f"Falta: ${abs(cambio):.2f}", text_color="#F44336")
+            except:
+                cambio_label.configure(text="Cambio: $0.00", text_color="#666666")
+        
+        monto_entry.bind("<KeyRelease>", calcular_cambio)
+        
+        # Variable para confirmar
+        confirmar_venta = [False]
+        
+        def confirmar():
+            try:
+                monto_recibido = float(monto_entry.get().replace("$", "").replace(",", ""))
+                if monto_recibido < total:
+                    messagebox.showwarning("Monto insuficiente", f"El monto recibido (${monto_recibido:.2f}) es menor al total (${total:.2f})")
+                    return
+                confirmar_venta[0] = True
+                pago_dialog.destroy()
+            except:
+                messagebox.showwarning("Monto inválido", "Ingresa un monto válido")
+        
+        # Botones
+        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        btn_frame.pack(fill="x")
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="✓ Confirmar Venta",
+            fg_color="#E91E63",
+            hover_color="#C2185B",
+            height=45,
+            font=("Segoe UI", 13, "bold"),
+            command=confirmar
+        ).pack(side="left", expand=True, fill="x", padx=(0, 5))
+        
+        ctk.CTkButton(
+            btn_frame,
+            text="✗ Cancelar",
+            fg_color="#9E9E9E",
+            hover_color="#757575",
+            height=45,
+            font=("Segoe UI", 13, "bold"),
+            command=pago_dialog.destroy
+        ).pack(side="left", expand=True, fill="x", padx=(5, 0))
+        
+        # Esperar a que se cierre el diálogo
+        self.wait_window(pago_dialog)
+        
+        if not confirmar_venta[0]:
             return
         
         try:
@@ -599,6 +734,10 @@ class VentasView(ctk.CTkFrame):
                 # Mostrar ticket
                 from views.ticket_venta_view import TicketVentaView
                 TicketVentaView(self, ticket_data)
+                
+                # Notificar nueva venta para actualizar otras vistas
+                from utils.notificaciones import notificar_nueva_venta
+                notificar_nueva_venta()
                 
                 # Limpiar carrito
                 self.carrito.clear()
@@ -849,3 +988,18 @@ class VentasView(ctk.CTkFrame):
         ]
         
         self.mostrar_productos(productos_filtrados)
+    def actualizar_historial_ventas(self):
+        """Actualizar el historial de ventas si está abierto"""
+        try:
+            # Buscar la ventana principal para acceder a otras vistas
+            parent = self.master
+            while parent and not hasattr(parent, 'current_view'):
+                parent = parent.master
+            
+            if parent and hasattr(parent, 'current_view'):
+                # Si la vista actual es el historial de ventas, actualizarla
+                if hasattr(parent.current_view, 'cargar_ventas'):
+                    parent.current_view.cargar_ventas()
+                    print("✓ Historial de ventas actualizado automáticamente")
+        except Exception as e:
+            print(f"Nota: No se pudo actualizar el historial automáticamente: {e}")

@@ -1,6 +1,3 @@
-# Archivos de configuración local
-login_config.json
-
 # Python
 __pycache__/
 *.py[cod]
@@ -26,21 +23,55 @@ wheels/
 .installed.cfg
 *.egg
 
-# IDE
+# Configuración sensible
+mysql_config.ini
+login_config.json
+
+# Backups y temporales
+*.sql
+*.bak
+*.tmp
+*.log
+backup_*/
+*_backup_*
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Base de datos
-*.db
-*.sqlite
-*.sqlite3
+# Reportes generados
+inventario_*.html
+*.pdf
 
-# Logs
-*.log
+# Imágenes temporales
+*.jpeg
+*.jpg
+*.png
+!assets/*.png
 
-# Sistema operativo
-.DS_Store
-Thumbs.db
+# Archivos de prueba
+probar_*.py
+simular_*.py
+verificar_*.py
+actualizar_*.py
+limpiar_*.py
+desbloquear_*.py
+reparar_*.py
+exportar_*.py
+restaurar_*.py
+
+# Documentos temporales
+PROBLEMA_*.txt
+SISTEMA_*.txt
+ARCHIVOS_*.txt
+COMPILAR_*.txt
+PANTALLAS_*.txt
+COMO_*.txt

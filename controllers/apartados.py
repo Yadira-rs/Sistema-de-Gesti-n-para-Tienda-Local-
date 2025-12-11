@@ -26,7 +26,7 @@ def crear_apartado_completo(cliente_id, productos, monto_anticipo=0.0, dias_venc
         # 1. Crear el registro principal del apartado
         sql_apartado = """
         INSERT INTO apartados (id_cliente, total, anticipo, saldo, fecha_limite, estado)
-        VALUES (%s, %s, %s, %s, DATE_ADD(CURDATE(), INTERVAL %s DAY), 'Pendiente')
+        VALUES (%s, %s, %s, %s, DATE_ADD(NOW(), INTERVAL %s DAY), 'Pendiente')
         """
         cursor.execute(sql_apartado, (cliente_id, total_apartado, monto_anticipo, saldo, dias_vencimiento))
         id_apartado = cursor.lastrowid
@@ -197,6 +197,10 @@ def crear_apartado_simple(id_cliente, total, anticipo, fecha_limite=None):
         conn.rollback()
         conn.close()
         return None
+
+def obtener_apartados():
+    """Obtener lista de apartados - alias para listar_apartados"""
+    return listar_apartados()
 
 def obtener_estadisticas_apartados():
     """Obtener estadísticas de apartados"""

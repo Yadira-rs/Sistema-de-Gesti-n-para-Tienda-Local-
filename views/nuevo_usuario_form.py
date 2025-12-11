@@ -90,7 +90,7 @@ class NuevoUsuarioForm(ctk.CTkToplevel):
         ).pack(fill="x", padx=10, pady=(15, 5))
         self.rol = ctk.CTkComboBox(
             main, 
-            values=["Vendedor", "Administrador", "Cajero"],
+            values=["Vendedor", "Administrador", "Cajero", "Empleado"],
             height=45,
             border_width=2,
             corner_radius=10,
@@ -126,11 +126,11 @@ class NuevoUsuarioForm(ctk.CTkToplevel):
 
         ctk.CTkButton(
             btn_frame, 
-            text="Crear usuario", 
-            fg_color="#FF0000",
-            hover_color="#CC0000",
+            text="💾 Guardar Cambios", 
+            fg_color="#E91E63",
+            hover_color="#C2185B",
             height=45,
-            width=180,
+            width=200,
             corner_radius=10,
             font=("Segoe UI", 13, "bold"),
             command=self.crear_usuario

@@ -1,0 +1,9 @@
+{
+    "host": "localhost",
+    "user": "root",
+    "password": "",
+    "database": "boutique_db",
+    "charset": "utf8mb4",
+    "collation": "utf8mb4_unicode_ci",
+    "autocommit": true
+}

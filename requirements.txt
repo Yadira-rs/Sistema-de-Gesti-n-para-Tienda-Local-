@@ -1,4 +1,7 @@
 customtkinter
-mysql-connector-python
 Pillow
 openpyxl
+tkcalendar
+pandas
+pyinstaller
+mysql-connector-python

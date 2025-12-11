@@ -144,7 +144,7 @@ class RecoverWindow(ctk.CTkToplevel):
             cur = conn.cursor(dictionary=True)
             
             # Buscar usuario por email
-            cur.execute("SELECT * FROM usuarios WHERE email = %s OR correo = %s", (email, email))
+            cur.execute("SELECT * FROM usuarios WHERE email = %s", (email,))
             usuario = cur.fetchone()
             
             if not usuario:

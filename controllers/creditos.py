@@ -1,6 +1,12 @@
 from database.db import crear_conexion
 from datetime import datetime, timedelta
 
+def listar_creditos():
+    """
+    Función alias para obtener_creditos() - mantiene compatibilidad
+    """
+    return obtener_creditos()
+
 def obtener_creditos():
     """
     Obtiene todos los créditos de la base de datos con información de la venta.
@@ -22,8 +28,8 @@ def obtener_creditos():
                 c.notas,
                 v.fecha as fecha_venta,
                 v.metodo_pago,
-                DATEDIFF(CURDATE(), c.fecha_credito) as dias_transcurridos,
-                DATEDIFF(c.fecha_vencimiento, CURDATE()) as dias_para_vencer
+                DATEDIFF(NOW(), c.fecha_credito) as dias_transcurridos,
+                DATEDIFF(c.fecha_vencimiento, NOW()) as dias_para_vencer
             FROM creditos c
             LEFT JOIN ventas v ON c.id_venta = v.id_venta
             ORDER BY c.fecha_credito DESC
@@ -56,7 +62,7 @@ def obtener_creditos_activos():
             SELECT 
                 c.*,
                 v.fecha as fecha_venta,
-                DATEDIFF(c.fecha_vencimiento, CURDATE()) as dias_para_vencer
+                DATEDIFF(c.fecha_vencimiento, NOW()) as dias_para_vencer
             FROM creditos c
             LEFT JOIN ventas v ON c.id_venta = v.id_venta
             WHERE c.estado = 'Activo'
@@ -79,7 +85,7 @@ def obtener_creditos_vencidos():
             SELECT 
                 c.*,
                 v.fecha as fecha_venta,
-                DATEDIFF(CURDATE(), c.fecha_vencimiento) as dias_vencido
+                DATEDIFF(NOW(), c.fecha_vencimiento) as dias_vencido
             FROM creditos c
             LEFT JOIN ventas v ON c.id_venta = v.id_venta
             WHERE c.estado = 'Vencido' OR (c.estado = 'Activo' AND c.fecha_vencimiento < CURDATE())
@@ -118,12 +124,16 @@ def obtener_abonos_hoy():
 
 def crear_credito(id_venta, id_cliente, monto_total, plazo_dias=30, tasa_interes=0, notas=""):
     """
-    Crea un nuevo crédito asociado a una venta.
+    Crea un nuevo crédito asociado a una venta (o sin venta si id_venta es None).
     """
     conn = crear_conexion()
     cursor = conn.cursor()
     try:
         fecha_vencimiento = (datetime.now() + timedelta(days=plazo_dias)).date()
+        
+        # Convertir id_venta vacío a None
+        if id_venta == "" or id_venta == "None":
+            id_venta = None
         
         cursor.execute(
             """INSERT INTO creditos (id_venta, id_cliente, monto_total, saldo_pendiente, 
@@ -138,6 +148,8 @@ def crear_credito(id_venta, id_cliente, monto_total, plazo_dias=30, tasa_interes
         return id_credito
     except Exception as e:
         print(f"Error al crear crédito: {e}")
+        import traceback
+        traceback.print_exc()
         conn.close()
         return None
 

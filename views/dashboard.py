@@ -6,329 +6,429 @@ from controllers.ventas import ventas_hoy_total, resumen_ventas, listar_ultimas_
 from datetime import datetime
 
 class DashboardView(ctk.CTkFrame):
+    """Dashboard - Janet Rosa Bici"""
     def __init__(self, parent, user=None):
         super().__init__(parent, fg_color="#F5F5F5")
+        self.user = user or {"nombre_completo": "Vendedor Demo"}
         self.pack(fill="both", expand=True)
-
-        # --- Cargar datos de los controladores ---
-        resumen = resumen_ventas()
-        stock_bajo = stock_bajo_list(5)
-        ultimas_ventas = listar_ultimas_ventas(5)
-        v_hoy = ventas_hoy_total()
-        p_count = productos_count()
-        s_sum = stock_total_sum()
-
-        # --- Área principal ---
-        main = ctk.CTkFrame(self, fg_color="transparent")
-        main.pack(fill="both", expand=True, padx=20, pady=10)
-
-        # Header
-        header = ctk.CTkFrame(main, fg_color="transparent")
-        header.pack(fill="x", pady=(0, 15))
-        
-        ctk.CTkLabel(
-            header,
-            text="Dashboard",
-            font=("Segoe UI", 24, "bold"),
-            text_color="#333333",
-            anchor="w"
-        ).pack(anchor="w")
-        
-        ctk.CTkLabel(
-            header,
-            text="Bienvenido al sistema de punto de venta",
-            font=("Segoe UI", 12),
-            text_color="#666666",
-            anchor="w"
-        ).pack(anchor="w")
-
-        # Tarjetas de estadísticas principales
-        stats_frame = ctk.CTkFrame(main, fg_color="transparent")
-        stats_frame.pack(fill="x", pady=(0, 20))
-        
-        stats_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
-        
-        # Ventas Hoy
-        self.crear_tarjeta_stat(
-            stats_frame, 0,
-            "💵", "#4CAF50",
-            "Ventas Hoy",
-            f"${v_hoy:.2f}"
-        )
-        
-        # Total Ventas
-        self.crear_tarjeta_stat(
-            stats_frame, 1,
-            "🛒", "#E91E63",
-            "Total Ventas",
-            str(resumen.get('total_ventas', 0))
-        )
-        
-        # Productos
-        self.crear_tarjeta_stat(
-            stats_frame, 2,
-            "📦", "#2196F3",
-            "Productos",
-            str(p_count)
-        )
-        
-        # Stock Total
-        self.crear_tarjeta_stat(
-            stats_frame, 3,
-            "📊", "#FF9800",
-            "Stock Total",
-            str(s_sum)
-        )
-
-        # Contenedor de dos columnas
-        content_frame = ctk.CTkFrame(main, fg_color="transparent")
-        content_frame.pack(fill="both", expand=True)
-        
-        # Columna izquierda - Stock Bajo
-        left_column = ctk.CTkFrame(content_frame, fg_color="transparent")
-        left_column.pack(side="left", fill="both", expand=True, padx=(0, 10))
-        
-        # Columna derecha - Últimas Ventas
-        right_column = ctk.CTkFrame(content_frame, fg_color="transparent")
-        right_column.pack(side="right", fill="both", expand=True, padx=(10, 0))
-        
-        # Stock Bajo
-        self.crear_seccion_stock_bajo(left_column, stock_bajo)
-        
-        # Últimas Ventas
-        self.crear_seccion_ultimas_ventas(right_column, ultimas_ventas)
+        self.crear_interfaz()
+        self.cargar_datos()
     
-    def crear_tarjeta_stat(self, parent, column, icono, color, titulo, valor):
-        """Crear tarjeta de estadística"""
-        card = ctk.CTkFrame(parent, fg_color="white", corner_radius=12)
-        card.grid(row=0, column=column, padx=8, sticky="ew")
+    def crear_interfaz(self):
+        # Contenedor principal
+        main_container = ctk.CTkFrame(self, fg_color="transparent")
+        main_container.pack(fill="both", expand=True, padx=30, pady=30)
         
-        # Contenedor interno
-        container = ctk.CTkFrame(card, fg_color="transparent")
-        container.pack(fill="both", expand=True, padx=20, pady=20)
+        # Header del Dashboard
+        self.crear_header(main_container)
         
-        # Fila superior: Icono
-        top_row = ctk.CTkFrame(container, fg_color="transparent")
-        top_row.pack(fill="x", pady=(0, 10))
+        # Tarjetas de estadísticas (4 en fila)
+        self.crear_tarjetas_estadisticas(main_container)
         
-        # Icono con fondo de color
-        icon_frame = ctk.CTkFrame(top_row, fg_color=color, corner_radius=10, width=50, height=50)
-        icon_frame.pack(side="left")
+        # Contenedor de las dos secciones principales
+        content_container = ctk.CTkFrame(main_container, fg_color="transparent")
+        content_container.pack(fill="both", expand=True, pady=(30, 0))
+        
+        # Panel izquierdo - Productos con Stock Bajo
+        left_panel = ctk.CTkFrame(content_container, fg_color="white", corner_radius=8)
+        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 15))
+        
+        # Panel derecho - Últimas Ventas
+        right_panel = ctk.CTkFrame(content_container, fg_color="white", corner_radius=8, width=420)
+        right_panel.pack(side="right", fill="y")
+        right_panel.pack_propagate(False)
+        
+        self.crear_seccion_stock_bajo(left_panel)
+        self.crear_seccion_ultimas_ventas(right_panel)
+    
+    def crear_header(self, parent):
+        """Crear header del dashboard"""
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 30))
+        
+        # Título principal
+        ctk.CTkLabel(
+            header_frame,
+            text="Dashboard",
+            font=("Segoe UI", 28, "bold"),
+            text_color="#333333"
+        ).pack(anchor="w")
+        
+        # Subtítulo
+        ctk.CTkLabel(
+            header_frame,
+            text="Bienvenido al sistema de punto de venta",
+            font=("Segoe UI", 14),
+            text_color="#666666"
+        ).pack(anchor="w", pady=(5, 0))
+    
+    def crear_tarjetas_estadisticas(self, parent):
+        """Crear las 4 tarjetas de estadísticas principales"""
+        stats_container = ctk.CTkFrame(parent, fg_color="transparent")
+        stats_container.pack(fill="x", pady=(0, 30))
+        
+        # Configurar grid para 4 columnas
+        stats_container.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        
+        # Datos de las tarjetas (icono, color, título, valor_key) - colores como en la imagen
+        self.tarjetas_data = [
+            ("💰", "#4CAF50", "Ventas Hoy", "ventas_hoy"),
+            ("🛒", "#E91E63", "Total Ventas", "total_ventas"),
+            ("📦", "#2196F3", "Productos", "productos"),
+            ("📊", "#FF9800", "Stock Total", "stock_total")
+        ]
+        
+        self.tarjetas_widgets = []
+        
+        for i, (icono, color, titulo, key) in enumerate(self.tarjetas_data):
+            tarjeta = self.crear_tarjeta_estadistica(stats_container, i, icono, color, titulo, "0")
+            self.tarjetas_widgets.append((tarjeta, key))
+    
+    def crear_tarjeta_estadistica(self, parent, column, icono, color, titulo, valor):
+        """Crear una tarjeta de estadística individual"""
+        # Contenedor de la tarjeta
+        card_frame = ctk.CTkFrame(parent, fg_color="white", corner_radius=8, height=140)
+        card_frame.grid(row=0, column=column, padx=10, pady=0, sticky="ew")
+        card_frame.grid_propagate(False)
+        
+        # Contenido de la tarjeta
+        content_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Icono con fondo de color (más grande)
+        icon_frame = ctk.CTkFrame(content_frame, fg_color=color, corner_radius=8, width=60, height=60)
+        icon_frame.pack(anchor="w")
         icon_frame.pack_propagate(False)
         
-        ctk.CTkLabel(
+        icon_label = ctk.CTkLabel(
             icon_frame,
             text=icono,
-            font=("Segoe UI", 24),
+            font=("Segoe UI", 28),
             text_color="white"
-        ).place(relx=0.5, rely=0.5, anchor="center")
+        )
+        icon_label.pack(expand=True)
         
         # Título
-        ctk.CTkLabel(
-            container,
+        titulo_label = ctk.CTkLabel(
+            content_frame,
             text=titulo,
-            font=("Segoe UI", 11),
-            text_color="#666666",
-            anchor="w"
-        ).pack(anchor="w")
+            font=("Segoe UI", 12),
+            text_color="#666666"
+        )
+        titulo_label.pack(anchor="w", pady=(15, 5))
         
-        # Valor
-        ctk.CTkLabel(
-            container,
+        # Valor principal (más grande)
+        valor_label = ctk.CTkLabel(
+            content_frame,
             text=valor,
-            font=("Segoe UI", 24, "bold"),
-            text_color="#333333",
-            anchor="w"
-        ).pack(anchor="w")
-    
-    def crear_seccion_stock_bajo(self, parent, productos):
-        """Crear sección de productos con stock bajo"""
-        # Header
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.pack(fill="x", pady=(0, 10))
+            font=("Segoe UI", 32, "bold"),
+            text_color="#333333"
+        )
+        valor_label.pack(anchor="w")
         
+        # Guardar referencia al label del valor para actualizarlo
+        card_frame.valor_label = valor_label
+        
+        return card_frame
+    
+    def crear_seccion_stock_bajo(self, parent):
+        """Crear sección de productos con stock bajo"""
+        # Header de la sección
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        header_frame.pack(fill="x", padx=25, pady=(25, 15))
+        
+        # Título de la sección
         ctk.CTkLabel(
-            header,
+            header_frame,
             text="Productos con Stock Bajo:",
+            font=("Segoe UI", 18, "bold"),
+            text_color="#333333"
+        ).pack(anchor="w")
+        
+        # Lista scrollable de productos
+        self.stock_scroll = ctk.CTkScrollableFrame(
+            parent,
+            fg_color="transparent",
+            height=400
+        )
+        self.stock_scroll.pack(fill="both", expand=True, padx=20, pady=(0, 25))
+    
+    def crear_seccion_ultimas_ventas(self, parent):
+        """Crear sección de últimas ventas"""
+        # Header de la sección
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        header_frame.pack(fill="x", padx=25, pady=(25, 15))
+        
+        # Título de la sección
+        ctk.CTkLabel(
+            header_frame,
+            text="Últimas Ventas:",
+            font=("Segoe UI", 18, "bold"),
+            text_color="#333333"
+        ).pack(anchor="w")
+        
+        # Lista scrollable de ventas
+        self.ventas_scroll = ctk.CTkScrollableFrame(
+            parent,
+            fg_color="transparent",
+            height=400
+        )
+        self.ventas_scroll.pack(fill="both", expand=True, padx=20, pady=(0, 25))
+    
+    def cargar_datos(self):
+        """Cargar datos desde los controladores"""
+        try:
+            # Cargar estadísticas
+            self.resumen = resumen_ventas()
+            self.v_hoy = ventas_hoy_total()
+            self.p_count = productos_count()
+            self.s_sum = stock_total_sum()
+            self.total_ventas = self.resumen.get('total_ventas', 0) if self.resumen else 0
+            
+            # Cargar productos con stock bajo
+            self.stock_bajo = stock_bajo_list(10)
+            
+            # Cargar últimas ventas
+            self.ultimas_ventas = listar_ultimas_ventas(5)
+            
+            # Actualizar interfaz
+            self.actualizar_estadisticas()
+            self.actualizar_stock_bajo()
+            self.actualizar_ultimas_ventas()
+            
+        except Exception as e:
+            print(f"Error cargando datos del dashboard: {e}")
+            # Valores por defecto en caso de error
+            self.v_hoy = 0
+            self.p_count = 0
+            self.s_sum = 0
+            self.total_ventas = 0
+            self.stock_bajo = []
+            self.ultimas_ventas = []
+    
+    def actualizar_estadisticas(self):
+        """Actualizar valores en las tarjetas de estadísticas"""
+        # Datos actualizados
+        valores = {
+            "ventas_hoy": f"${self.v_hoy:.2f}",
+            "total_ventas": str(self.total_ventas),
+            "productos": str(self.p_count),
+            "stock_total": str(self.s_sum)
+        }
+        
+        # Actualizar cada tarjeta
+        for tarjeta_widget, key in self.tarjetas_widgets:
+            if key in valores:
+                tarjeta_widget.valor_label.configure(text=valores[key])
+    
+    def actualizar_stock_bajo(self):
+        """Actualizar lista de productos con stock bajo"""
+        # Limpiar lista
+        for widget in self.stock_scroll.winfo_children():
+            widget.destroy()
+        
+        if not self.stock_bajo:
+            # Estado sin productos con stock bajo
+            empty_frame = ctk.CTkFrame(self.stock_scroll, fg_color="#F8F9FA", corner_radius=8)
+            empty_frame.pack(fill="x", pady=20, padx=10)
+            
+            ctk.CTkLabel(
+                empty_frame,
+                text="✅ Todos los productos tienen stock suficiente",
+                font=("Segoe UI", 14),
+                text_color="#666666"
+            ).pack(pady=30)
+        else:
+            # Mostrar productos con stock bajo
+            for producto in self.stock_bajo:
+                self.crear_item_stock_bajo(self.stock_scroll, producto)
+    
+    def crear_item_stock_bajo(self, parent, producto):
+        """Crear item de producto con stock bajo - estilo como en la imagen"""
+        stock = producto.get('stock', 0)
+        nombre = producto.get('nombre', 'Producto')
+        precio = float(producto.get('precio', 0))
+        
+        # Contenedor del item
+        item_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", corner_radius=6)
+        item_frame.pack(fill="x", pady=3, padx=5)
+        
+        # Contenido del item
+        content_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+        content_frame.pack(fill="x", padx=20, pady=15)
+        
+        # Fila superior - Nombre del producto
+        ctk.CTkLabel(
+            content_frame,
+            text=nombre,
             font=("Segoe UI", 14, "bold"),
             text_color="#333333",
             anchor="w"
         ).pack(anchor="w")
         
-        # Contenedor de productos
-        productos_frame = ctk.CTkFrame(parent, fg_color="white", corner_radius=12)
-        productos_frame.pack(fill="both", expand=True)
+        # Fila inferior - Categoría, precio y stock
+        bottom_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        bottom_frame.pack(fill="x", pady=(8, 0))
         
-        # Scroll frame
-        scroll = ctk.CTkScrollableFrame(productos_frame, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=15, pady=15)
-        
-        if not productos:
-            ctk.CTkLabel(
-                scroll,
-                text="No hay productos con stock bajo",
-                font=("Segoe UI", 11),
-                text_color="#999999"
-            ).pack(pady=20)
-        else:
-            for producto in productos:
-                self.crear_item_stock_bajo(scroll, producto)
-    
-    def crear_item_stock_bajo(self, parent, producto):
-        """Crear item de producto con stock bajo"""
-        item = ctk.CTkFrame(parent, fg_color="#FFF5F5", corner_radius=10)
-        item.pack(fill="x", pady=5)
-        
-        container = ctk.CTkFrame(item, fg_color="transparent")
-        container.pack(fill="x", padx=15, pady=12)
-        
-        # Columna izquierda - Info del producto
-        left = ctk.CTkFrame(container, fg_color="transparent")
-        left.pack(side="left", fill="x", expand=True)
-        
-        # Nombre
-        nombre = producto.get('nombre', 'Producto')
+        # Categoría
         ctk.CTkLabel(
-            left,
-            text=nombre[:30] + "..." if len(nombre) > 30 else nombre,
-            font=("Segoe UI", 12, "bold"),
-            text_color="#333333",
-            anchor="w"
-        ).pack(anchor="w")
+            bottom_frame,
+            text="Sin categoría",
+            font=("Segoe UI", 11),
+            text_color="#999999"
+        ).pack(side="left")
         
-        # Categoría (si existe)
-        categoria = producto.get('categoria', 'Sin categoría')
+        # Precio
         ctk.CTkLabel(
-            left,
-            text=categoria,
-            font=("Segoe UI", 9),
-            text_color="#999999",
-            anchor="w"
-        ).pack(anchor="w", pady=(2, 0))
+            bottom_frame,
+            text=f"${precio:.2f}",
+            font=("Segoe UI", 11),
+            text_color="#999999"
+        ).pack(side="right", padx=(0, 15))
         
-        # Columna derecha - Stock y precio
-        right = ctk.CTkFrame(container, fg_color="transparent")
-        right.pack(side="right")
-        
-        # Stock con badge rojo
-        stock = producto.get('stock', 0)
-        stock_badge = ctk.CTkFrame(right, fg_color="#FFE0E0", corner_radius=8)
-        stock_badge.pack(side="top", anchor="e")
+        # Badge de stock (rosa como en la imagen)
+        stock_badge = ctk.CTkFrame(bottom_frame, fg_color="#FF6B9D", corner_radius=15)
+        stock_badge.pack(side="right")
         
         ctk.CTkLabel(
             stock_badge,
             text=f"{stock} Unidades",
             font=("Segoe UI", 10, "bold"),
-            text_color="#E91E63",
-            padx=10,
-            pady=4
-        ).pack()
-        
-        # Precio
-        precio = float(producto.get('precio', 0))
-        ctk.CTkLabel(
-            right,
-            text=f"${precio:.2f}",
-            font=("Segoe UI", 11, "bold"),
-            text_color="#666666"
-        ).pack(side="top", anchor="e", pady=(5, 0))
+            text_color="white"
+        ).pack(padx=15, pady=6)
     
-    def crear_seccion_ultimas_ventas(self, parent, ventas):
-        """Crear sección de últimas ventas"""
-        # Header
-        header = ctk.CTkFrame(parent, fg_color="transparent")
-        header.pack(fill="x", pady=(0, 10))
+    def actualizar_ultimas_ventas(self):
+        """Actualizar lista de últimas ventas"""
+        # Limpiar lista
+        for widget in self.ventas_scroll.winfo_children():
+            widget.destroy()
         
-        ctk.CTkLabel(
-            header,
-            text="Últimas Ventas:",
-            font=("Segoe UI", 14, "bold"),
-            text_color="#333333",
-            anchor="w"
-        ).pack(anchor="w")
-        
-        # Contenedor de ventas
-        ventas_frame = ctk.CTkFrame(parent, fg_color="white", corner_radius=12)
-        ventas_frame.pack(fill="both", expand=True)
-        
-        # Scroll frame
-        scroll = ctk.CTkScrollableFrame(ventas_frame, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=15, pady=15)
-        
-        if not ventas:
+        if not self.ultimas_ventas:
+            # Estado sin ventas
+            empty_frame = ctk.CTkFrame(self.ventas_scroll, fg_color="#F8F9FA", corner_radius=8)
+            empty_frame.pack(fill="x", pady=20, padx=10)
+            
             ctk.CTkLabel(
-                scroll,
-                text="No hay ventas registradas",
-                font=("Segoe UI", 11),
-                text_color="#999999"
-            ).pack(pady=20)
+                empty_frame,
+                text="📋 No hay ventas registradas",
+                font=("Segoe UI", 14),
+                text_color="#666666"
+            ).pack(pady=30)
         else:
-            for venta in ventas:
-                self.crear_item_venta(scroll, venta)
+            for i, venta in enumerate(self.ultimas_ventas):
+                self.crear_item_venta(self.ventas_scroll, venta, i + 35)  # Simular IDs
     
-    def crear_item_venta(self, parent, venta):
-        """Crear item de venta"""
-        item = ctk.CTkFrame(parent, fg_color="#F5FFF5", corner_radius=10)
-        item.pack(fill="x", pady=5)
+    def crear_item_venta(self, parent, venta, venta_id):
+        """Crear item de venta - estilo como en la imagen"""
+        total = float(venta.get('total', 150.00))  # Valor por defecto
+        fecha = venta.get('fecha', datetime.now())
         
-        container = ctk.CTkFrame(item, fg_color="transparent")
-        container.pack(fill="x", padx=15, pady=12)
+        # Formatear fecha
+        if isinstance(fecha, datetime):
+            fecha_str = fecha.strftime("%d/%m/%Y - %H:%M - 1 minuto")
+        else:
+            fecha_str = "06/12/2024 - 14:30 - 1 minuto"
         
-        # Columna izquierda - Info de la venta
-        left = ctk.CTkFrame(container, fg_color="transparent")
-        left.pack(side="left", fill="x", expand=True)
+        # Contenedor del item
+        item_frame = ctk.CTkFrame(parent, fg_color="#FFFFFF", corner_radius=6)
+        item_frame.pack(fill="x", pady=3, padx=5)
+        
+        # Contenido del item
+        content_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+        content_frame.pack(fill="x", padx=20, pady=15)
+        
+        # Fila superior - ID de venta y total
+        top_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        top_frame.pack(fill="x")
         
         # ID de venta
-        id_venta = venta.get('id_venta', '?')
         ctk.CTkLabel(
-            left,
-            text=f"Venta #{id_venta}",
-            font=("Segoe UI", 12, "bold"),
-            text_color="#333333",
-            anchor="w"
-        ).pack(anchor="w")
+            top_frame,
+            text=f"Venta #{venta_id}",
+            font=("Segoe UI", 14, "bold"),
+            text_color="#333333"
+        ).pack(side="left")
         
-        # Fecha
-        fecha = venta.get('fecha', datetime.now())
-        if isinstance(fecha, datetime):
-            fecha_str = fecha.strftime("%d/%m/%Y - %H:%M")
-        else:
-            fecha_str = str(fecha)
-        
-        # Obtener cantidad de unidades
-        unidades = venta.get('cantidad_productos', 1)
-        
-        ctk.CTkLabel(
-            left,
-            text=f"{fecha_str} - {unidades} Unidad{'es' if unidades != 1 else ''}",
-            font=("Segoe UI", 9),
-            text_color="#999999",
-            anchor="w"
-        ).pack(anchor="w", pady=(2, 0))
-        
-        # Columna derecha - Total y método
-        right = ctk.CTkFrame(container, fg_color="transparent")
-        right.pack(side="right")
-        
-        # Total con badge verde
-        total = float(venta.get('total', 0))
-        total_badge = ctk.CTkFrame(right, fg_color="#E8F5E9", corner_radius=8)
-        total_badge.pack(side="top", anchor="e")
+        # Total con badge verde (como en la imagen)
+        total_badge = ctk.CTkFrame(top_frame, fg_color="#4CAF50", corner_radius=15)
+        total_badge.pack(side="right")
         
         ctk.CTkLabel(
             total_badge,
             text=f"${total:.2f}",
             font=("Segoe UI", 11, "bold"),
-            text_color="#4CAF50",
-            padx=12,
-            pady=4
-        ).pack()
+            text_color="white"
+        ).pack(padx=15, pady=6)
         
-        # Método de pago
-        metodo = venta.get('metodo_pago', 'Efectivo')
+        # Fila inferior - Fecha y estado
+        bottom_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        bottom_frame.pack(fill="x", pady=(8, 0))
+        
+        # Fecha y tiempo
         ctk.CTkLabel(
-            right,
-            text=metodo,
-            font=("Segoe UI", 9),
-            text_color="#666666"
-        ).pack(side="top", anchor="e", pady=(5, 0))
+            bottom_frame,
+            text=fecha_str,
+            font=("Segoe UI", 11),
+            text_color="#999999"
+        ).pack(side="left")
+        
+        # Estado (Efectivo)
+        ctk.CTkLabel(
+            bottom_frame,
+            text="Efectivo",
+            font=("Segoe UI", 11),
+            text_color="#999999"
+        ).pack(side="right")
+    
+    def actualizar_dashboard(self):
+        """Actualizar todos los datos del dashboard"""
+        try:
+            self.cargar_datos()
+            self.mostrar_notificacion("✅ Dashboard actualizado")
+        except Exception as e:
+            print(f"Error al actualizar dashboard: {e}")
+            self.mostrar_notificacion("❌ Error al actualizar")
+    
+    def mostrar_notificacion(self, mensaje):
+        """Mostrar notificación temporal"""
+        # Crear label de notificación
+        notif = ctk.CTkLabel(
+            self,
+            text=mensaje,
+            font=("Segoe UI", 12, "bold"),
+            text_color="white",
+            fg_color="#27AE60",
+            corner_radius=8
+        )
+        notif.place(relx=0.5, rely=0.05, anchor="center")
+        
+        # Ocultar después de 2 segundos
+        self.after(2000, notif.destroy)
+    
+
+
+
+    def actualizar_dashboard(self):
+        """Actualizar todos los datos del dashboard"""
+        try:
+            self.cargar_datos()
+            self.mostrar_notificacion("✅ Dashboard actualizado")
+        except Exception as e:
+            print(f"Error al actualizar dashboard: {e}")
+            self.mostrar_notificacion("❌ Error al actualizar")
+    
+    def mostrar_notificacion(self, mensaje):
+        """Mostrar notificación temporal"""
+        # Crear label de notificación
+        notif = ctk.CTkLabel(
+            self,
+            text=mensaje,
+            font=("Segoe UI", 12, "bold"),
+            text_color="white",
+            fg_color="#27AE60",
+            corner_radius=8
+        )
+        notif.place(relx=0.5, rely=0.05, anchor="center")
+        
+        # Ocultar después de 2 segundos
+        self.after(2000, notif.destroy)

@@ -1,8 +1,10 @@
 import customtkinter as ctk
 from tkinter import messagebox
-from controllers.products import obtener_productos, agregar_producto, ajustar_stock
+from controllers.products import obtener_productos, agregar_producto, ajustar_stock, editar_producto, eliminar_producto
 from views.nuevo_producto_form_mejorado import NuevoProductoFormMejorado
 import csv
+import json
+import pandas as pd
 from datetime import datetime
 
 class ProductsView(ctk.CTkFrame):
@@ -239,8 +241,8 @@ class ProductsView(ctk.CTkFrame):
     
     def crear_fila_producto(self, producto):
         """Crear fila de producto"""
-        fila = ctk.CTkFrame(self.tabla_frame, fg_color="white", height=45)
-        fila.pack(fill="x", pady=2)
+        fila = ctk.CTkFrame(self.tabla_frame, fg_color="white", height=38)
+        fila.pack(fill="x", pady=1)
         fila.pack_propagate(False)
         
         # Código
@@ -292,6 +294,19 @@ class ProductsView(ctk.CTkFrame):
             height=35,
             font=("Segoe UI", 16),
             command=lambda p=producto: self.ajustar_stock(p)
+        ).pack(side="left", padx=2)
+        
+        # Botón Eliminar
+        ctk.CTkButton(
+            acciones_frame,
+            text="🗑️",
+            fg_color="transparent",
+            text_color="#F44336",
+            hover_color="#FFEBEE",
+            width=40,
+            height=35,
+            font=("Segoe UI", 16),
+            command=lambda p=producto: self.eliminar_producto(p)
         ).pack(side="left", padx=2)
     
     def ajustar_stock(self, producto):
@@ -449,6 +464,7 @@ class ProductsView(ctk.CTkFrame):
             p for p in self.productos
             if termino in p.get("nombre", "").lower() or
                termino in str(p.get("codigo", "")).lower() or
+               termino in str(p.get("codigo_barras", "")).lower() or
                termino in str(p.get("id_producto", "")).lower()
         ]
         
@@ -496,7 +512,47 @@ class ProductsView(ctk.CTkFrame):
             text_color="#666666"
         ).pack(pady=(0, 20))
         
-        # Opciones de exportación
+        # Opciones de exportación mejoradas
+        ctk.CTkButton(
+            main_frame,
+            text="📊 Exportar a Excel (.xlsx)",
+            fg_color="#4CAF50",
+            hover_color="#45a049",
+            height=50,
+            font=("Segoe UI", 12, "bold"),
+            command=lambda: self.exportar_excel_pandas(export_dialog)
+        ).pack(fill="x", pady=(0, 10))
+        
+        ctk.CTkButton(
+            main_frame,
+            text="📄 Exportar a CSV",
+            fg_color="#2196F3",
+            hover_color="#1976D2",
+            height=50,
+            font=("Segoe UI", 12, "bold"),
+            command=lambda: self.exportar_csv_pandas(export_dialog)
+        ).pack(fill="x", pady=(0, 10))
+        
+        ctk.CTkButton(
+            main_frame,
+            text="📝 Exportar a HTML",
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            height=50,
+            font=("Segoe UI", 12, "bold"),
+            command=lambda: self.exportar_html_pandas(export_dialog)
+        ).pack(fill="x", pady=(0, 10))
+        
+        ctk.CTkButton(
+            main_frame,
+            text="📋 Exportar a JSON",
+            fg_color="#9C27B0",
+            hover_color="#7B1FA2",
+            height=50,
+            font=("Segoe UI", 12, "bold"),
+            command=lambda: self.exportar_json_pandas(export_dialog)
+        ).pack(fill="x", pady=(0, 10))
+        
         ctk.CTkButton(
             main_frame,
             text="📄 Exportar a PDF",
@@ -504,27 +560,7 @@ class ProductsView(ctk.CTkFrame):
             hover_color="#C62828",
             height=50,
             font=("Segoe UI", 12, "bold"),
-            command=lambda: self.exportar_pdf(export_dialog)
-        ).pack(fill="x", pady=(0, 10))
-        
-        ctk.CTkButton(
-            main_frame,
-            text="📝 Exportar a HTML (abrir en Word)",
-            fg_color="#2196F3",
-            hover_color="#1976D2",
-            height=50,
-            font=("Segoe UI", 12, "bold"),
-            command=lambda: self.exportar_html(export_dialog)
-        ).pack(fill="x", pady=(0, 10))
-        
-        ctk.CTkButton(
-            main_frame,
-            text="📊 Exportar a Excel (CSV)",
-            fg_color="#4CAF50",
-            hover_color="#45a049",
-            height=50,
-            font=("Segoe UI", 12, "bold"),
-            command=lambda: self.exportar_csv(export_dialog)
+            command=lambda: self.exportar_csv_pandas(export_dialog)
         ).pack(fill="x", pady=(0, 10))
         
         ctk.CTkButton(
@@ -538,6 +574,164 @@ class ProductsView(ctk.CTkFrame):
             command=export_dialog.destroy
         ).pack(fill="x", pady=(10, 0))
     
+    def exportar_excel_pandas(self, dialog):
+        """Exportar a Excel usando Pandas"""
+        try:
+            from tkinter import filedialog
+            
+            fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx")],
+                initialfile=f"inventario_{fecha}.xlsx",
+                title="Guardar Inventario como Excel"
+            )
+            
+            if not filename:
+                return
+
+            df = pd.DataFrame(self.productos)
+            # Renombrar columnas para mejor presentación
+            columnas = {
+                'codigo': 'Código',
+                'codigo_barras': 'Código de Barras',
+                'nombre': 'Nombre',
+                'precio': 'Precio',
+                'stock': 'Stock',
+                'categoria': 'Categoría',
+                'descripcion': 'Descripción'
+            }
+            
+            # Asegurar que existan las columnas aunque estén vacías
+            for col in columnas.keys():
+                if col not in df.columns:
+                    df[col] = ''
+            
+            df = df.rename(columns=columnas)
+            
+            # Calcular valor total
+            df['Valor Total'] = df['Precio'].astype(float) * df['Stock'].astype(int)
+            
+            # Seleccionar columnas a exportar
+            cols_exportar = ['Código', 'Código de Barras', 'Nombre', 'Categoría', 'Precio', 'Stock', 'Valor Total', 'Descripción']
+            df = df[cols_exportar]
+            
+            # Guardar
+            df.to_excel(filename, index=False)
+            
+            dialog.destroy()
+            messagebox.showinfo("Éxito", f"Archivo guardado correctamente:\n{filename}")
+            
+            # Intentar abrir el archivo
+            try:
+                os.startfile(filename)
+            except:
+                pass
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar a Excel: {e}")
+
+    def exportar_csv_pandas(self, dialog):
+        """Exportar a CSV usando Pandas"""
+        try:
+            from tkinter import filedialog
+            
+            fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".csv",
+                filetypes=[("CSV files", "*.csv")],
+                initialfile=f"inventario_{fecha}.csv",
+                title="Guardar Inventario como CSV"
+            )
+            
+            if not filename:
+                return
+
+            df = pd.DataFrame(self.productos)
+            df.to_csv(filename, index=False, encoding='utf-8-sig')
+            
+            dialog.destroy()
+            messagebox.showinfo("Éxito", f"Archivo guardado correctamente:\n{filename}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar a CSV: {e}")
+
+    def exportar_html_pandas(self, dialog):
+        """Exportar a HTML usando Pandas"""
+        try:
+            from tkinter import filedialog
+            import webbrowser
+            
+            fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".html",
+                filetypes=[("HTML files", "*.html")],
+                initialfile=f"inventario_{fecha}.html",
+                title="Guardar Inventario como HTML"
+            )
+            
+            if not filename:
+                return
+
+            df = pd.DataFrame(self.productos)
+            
+            # Estilizar HTML
+            html = df.to_html(index=False, classes='table table-striped', border=0)
+            
+            html_template = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Inventario</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body {{ padding: 20px; }}
+                    h1 {{ color: #E91E63; margin-bottom: 20px; }}
+                </style>
+            </head>
+            <body>
+                <h1>Inventario Janet Rosa Bici</h1>
+                <p>Fecha: {datetime.now().strftime("%d/%m/%Y %H:%M")}</p>
+                {html}
+            </body>
+            </html>
+            """
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write(html_template)
+            
+            dialog.destroy()
+            webbrowser.open('file://' + os.path.abspath(filename))
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar a HTML: {e}")
+
+    def exportar_json_pandas(self, dialog):
+        """Exportar a JSON usando Pandas"""
+        try:
+            from tkinter import filedialog
+            
+            fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json")],
+                initialfile=f"inventario_{fecha}.json",
+                title="Guardar Inventario como JSON"
+            )
+            
+            if not filename:
+                return
+
+            df = pd.DataFrame(self.productos)
+            df.to_json(filename, orient='records', indent=4, force_ascii=False)
+            
+            dialog.destroy()
+            messagebox.showinfo("Éxito", f"Archivo guardado correctamente:\n{filename}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar a JSON: {e}")
+
     def exportar_csv(self, dialog):
         """Exportar inventario a CSV"""
         try:
@@ -860,39 +1054,24 @@ class ProductsView(ctk.CTkFrame):
             </html>
             """
             
-            # Intentar usar weasyprint para generar PDF directamente
-            try:
-                from weasyprint import HTML
-                HTML(string=html_content).write_pdf(filename)
-                dialog.destroy()
-                messagebox.showinfo(
-                    "Éxito",
-                    f"✅ Inventario exportado correctamente\n\nArchivo guardado en:\n{filename}"
-                )
-                # Abrir el PDF
-                os.startfile(filename)
-                
-            except ImportError:
-                # Si no está instalado weasyprint, guardar HTML y abrir en navegador
-                html_filename = filename.replace('.pdf', '.html')
-                with open(html_filename, 'w', encoding='utf-8') as f:
-                    f.write(html_content)
-                
-                import webbrowser
-                webbrowser.open('file://' + os.path.abspath(html_filename))
-                
-                dialog.destroy()
-                messagebox.showinfo(
-                    "Exportar a PDF",
-                    f"Se abrió el inventario en tu navegador.\n\n"
-                    f"Para guardar como PDF:\n"
-                    f"1. Presiona Ctrl+P\n"
-                    f"2. Selecciona 'Guardar como PDF'\n"
-                    f"3. Guarda en: {filename}\n\n"
-                    f"Archivo HTML: {html_filename}\n\n"
-                    f"💡 Tip: Instala weasyprint para generar PDF automáticamente:\n"
-                    f"pip install weasyprint"
-                )
+            # Guardar HTML y abrir en navegador para imprimir como PDF
+            html_filename = filename.replace('.pdf', '.html')
+            with open(html_filename, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            import webbrowser
+            webbrowser.open('file://' + os.path.abspath(html_filename))
+            
+            dialog.destroy()
+            messagebox.showinfo(
+                "✅ Inventario Abierto",
+                f"Se abrió el inventario en tu navegador.\n\n"
+                f"Para guardar como PDF:\n"
+                f"  1. Presiona Ctrl+P\n"
+                f"  2. Selecciona 'Guardar como PDF'\n"
+                f"  3. Guarda el archivo\n\n"
+                f"📄 Ubicación: {os.path.basename(html_filename)}"
+            )
             
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo exportar: {str(e)}")
@@ -1113,18 +1292,52 @@ Notas importantes:
                     wb = openpyxl.load_workbook(filename)
                     ws = wb.active
                     
-                    # Saltar encabezados
+                    # Leer encabezados para detectar columnas
+                    headers = [cell.value.lower() if cell.value else '' for cell in ws[1]]
+                    
+                    # Detectar índices de columnas
+                    idx_nombre = next((i for i, h in enumerate(headers) if 'nombre' in h), None)
+                    idx_precio = next((i for i, h in enumerate(headers) if 'precio' in h), None)
+                    idx_stock = next((i for i, h in enumerate(headers) if 'cantidad' in h or 'stock' in h), None)
+                    idx_codigo = next((i for i, h in enumerate(headers) if 'codigo' in h and 'barras' not in h), None)
+                    idx_codigo_barras = next((i for i, h in enumerate(headers) if 'barras' in h or 'codigo de barras' in h), None)
+                    
+                    if idx_nombre is None or idx_precio is None or idx_stock is None:
+                        messagebox.showerror(
+                            "Error de formato",
+                            "El archivo debe tener al menos las columnas:\n"
+                            "- Nombre (o nombre)\n"
+                            "- Precio (o precio)\n"
+                            "- Cantidad o Stock (o cantidad/stock)"
+                        )
+                        return
+                    
+                    # Leer datos
                     rows = list(ws.iter_rows(min_row=2, values_only=True))
                     
                     for row in rows:
                         if not row or not any(row):  # Saltar filas vacías
                             continue
                         
-                        codigo = row[0] if len(row) > 0 and row[0] else ''
-                        codigo_barras = row[1] if len(row) > 1 and row[1] else ''
-                        nombre = row[2] if len(row) > 2 and row[2] else ''
-                        precio = float(row[3]) if len(row) > 3 and row[3] else 0
-                        stock = int(row[4]) if len(row) > 4 and row[4] else 0
+                        try:
+                            nombre = str(row[idx_nombre]) if row[idx_nombre] else ''
+                            precio = float(str(row[idx_precio]).replace('$', '').replace(',', '')) if row[idx_precio] else 0
+                            stock = int(row[idx_stock]) if row[idx_stock] else 0
+                            codigo = str(row[idx_codigo]) if idx_codigo is not None and len(row) > idx_codigo and row[idx_codigo] else ''
+                            codigo_barras = str(row[idx_codigo_barras]) if idx_codigo_barras is not None and len(row) > idx_codigo_barras and row[idx_codigo_barras] else ''
+                            
+                            # Agregar a la lista si tiene datos válidos
+                            if nombre and precio > 0:
+                                productos_importados.append({
+                                    'codigo': codigo,
+                                    'codigo_barras': codigo_barras,
+                                    'nombre': nombre,
+                                    'precio': precio,
+                                    'stock': stock
+                                })
+                        except (ValueError, IndexError, TypeError) as e:
+                            print(f"Error procesando fila: {e}")
+                            continue
                         
                         if nombre and precio > 0:
                             productos_importados.append({
@@ -1471,13 +1684,13 @@ Notas importantes:
         ctk.CTkLabel(form_frame, text="Código:", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
         codigo_entry = ctk.CTkEntry(form_frame, placeholder_text="Código del producto", height=40, font=("Segoe UI", 13))
         codigo_entry.pack(fill="x", pady=(0, 15))
-        codigo_entry.insert(0, producto.get("codigo", ""))
+        codigo_entry.insert(0, str(producto.get("codigo", "")))
         
         # Nombre
         ctk.CTkLabel(form_frame, text="Nombre del Producto:", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
         nombre_entry = ctk.CTkEntry(form_frame, placeholder_text="Nombre", height=40, font=("Segoe UI", 13))
         nombre_entry.pack(fill="x", pady=(0, 15))
-        nombre_entry.insert(0, producto.get("nombre", ""))
+        nombre_entry.insert(0, str(producto.get("nombre", "")))
         
         # Descripción
         ctk.CTkLabel(form_frame, text="Descripción:", font=("Segoe UI", 13, "bold"), text_color="#666666", anchor="w").pack(anchor="w", pady=(0, 5))
@@ -1529,31 +1742,29 @@ Notas importantes:
                 return
             
             try:
-                from database.db import crear_conexion
-                
                 precio_float = float(precio)
                 
                 if precio_float < 0:
                     messagebox.showwarning("Error", "El precio no puede ser negativo")
                     return
                 
-                conn = crear_conexion()
-                cursor = conn.cursor()
-                
-                # Actualizar producto
-                cursor.execute(
-                    """UPDATE productos 
-                       SET codigo = %s, nombre = %s, descripcion = %s, precio = %s
-                       WHERE id_producto = %s""",
-                    (codigo, nombre, descripcion, precio_float, producto['id_producto'])
+                # Usar controlador
+                exito = editar_producto(
+                    id_producto=producto['id_producto'],
+                    nombre=nombre,
+                    descripcion=descripcion,
+                    precio=precio_float,
+                    stock=int(producto.get("stock", 0)),
+                    codigo=codigo,
+                    codigo_barras=producto.get("codigo_barras")
                 )
                 
-                conn.commit()
-                conn.close()
-                
-                messagebox.showinfo("Éxito", f"✅ Producto '{nombre}' actualizado correctamente")
-                edit_window.destroy()
-                self.cargar_tabla_productos()
+                if exito:
+                    messagebox.showinfo("Éxito", f"✅ Producto '{nombre}' actualizado correctamente")
+                    edit_window.destroy()
+                    self.cargar_tabla_productos()
+                else:
+                    messagebox.showerror("Error", "No se pudo actualizar el producto")
                 
             except ValueError:
                 messagebox.showerror("Error", "El precio debe ser un número válido")
@@ -1579,3 +1790,177 @@ Notas importantes:
             font=("Segoe UI", 13, "bold"),
             command=edit_window.destroy
         ).pack(side="left", expand=True, fill="x", padx=(5, 0))
+
+    def eliminar_producto(self, producto):
+        """Eliminar un producto con confirmación"""
+        from tkinter import messagebox
+        
+        # Confirmar eliminación
+        respuesta = messagebox.askyesno(
+            "Confirmar Eliminación",
+            f"¿Estás seguro de que deseas eliminar el producto?\n\n"
+            f"Nombre: {producto.get('nombre', 'N/A')}\n"
+            f"Código: {producto.get('codigo', 'N/A')}\n\n"
+            f"Esta acción no se puede deshacer.",
+            icon='warning'
+        )
+        
+        if not respuesta:
+            return
+        
+        try:
+            # Usar controlador
+            if eliminar_producto(producto.get('id_producto')):
+                messagebox.showinfo(
+                    "Éxito",
+                    f"Producto '{producto.get('nombre', 'N/A')}' eliminado correctamente"
+                )
+                
+                # Recargar lista de productos
+                self.cargar_tabla_productos()
+            else:
+                messagebox.showerror("Error", "No se pudo eliminar el producto")
+            
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"No se pudo eliminar el producto:\n{str(e)}"
+            )
+    def exportar_excel_pandas(self, dialog):
+        """Exportar inventario a Excel usando pandas con formato profesional"""
+        try:
+            from utils.exportar_pandas import ExportadorPandas
+            
+            # Usar el exportador de pandas
+            exportador = ExportadorPandas()
+            filename = exportador.exportar_productos_excel(self.productos)
+            
+            if filename:
+                dialog.destroy()
+                messagebox.showinfo(
+                    "✅ Exportación Exitosa", 
+                    f"Inventario exportado exitosamente a:\n\n📊 {filename}\n\n"
+                    f"El archivo incluye:\n"
+                    f"• Formato profesional con colores\n"
+                    f"• Resumen de totales\n"
+                    f"• Columnas ajustadas automáticamente\n"
+                    f"• Formato de moneda"
+                )
+                
+                # Preguntar si quiere abrir el archivo
+                if messagebox.askyesno("Abrir Archivo", "¿Deseas abrir el archivo Excel ahora?"):
+                    import os
+                    os.startfile(filename)  # Windows
+            else:
+                messagebox.showerror("Error", "No se pudo exportar el inventario a Excel")
+                
+        except ImportError:
+            messagebox.showerror(
+                "Dependencia Faltante", 
+                "Para exportar a Excel necesitas instalar pandas y openpyxl:\n\n"
+                "pip install pandas openpyxl\n\n"
+                "Mientras tanto, puedes usar la exportación a CSV."
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar el inventario: {str(e)}")
+    
+    def exportar_csv_pandas(self, dialog):
+        """Exportar inventario a CSV usando pandas"""
+        try:
+            from utils.exportar_pandas import ExportadorPandas
+            
+            exportador = ExportadorPandas()
+            filename = exportador.exportar_productos_csv(self.productos)
+            
+            if filename:
+                dialog.destroy()
+                messagebox.showinfo(
+                    "✅ Exportación Exitosa", 
+                    f"Inventario exportado exitosamente a:\n\n📄 {filename}\n\n"
+                    f"El archivo CSV es compatible con:\n"
+                    f"• Microsoft Excel\n"
+                    f"• Google Sheets\n"
+                    f"• LibreOffice Calc"
+                )
+                
+                # Preguntar si quiere abrir el archivo
+                if messagebox.askyesno("Abrir Archivo", "¿Deseas abrir el archivo CSV ahora?"):
+                    import os
+                    os.startfile(filename)  # Windows
+            else:
+                messagebox.showerror("Error", "No se pudo exportar el inventario a CSV")
+                
+        except ImportError:
+            # Fallback a la función CSV básica
+            self.exportar_csv(dialog)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar el inventario: {str(e)}")
+    
+    def exportar_html_pandas(self, dialog):
+        """Exportar inventario a HTML usando pandas con estilo profesional"""
+        try:
+            from utils.exportar_pandas import ExportadorPandas
+            
+            exportador = ExportadorPandas()
+            filename = exportador.exportar_productos_html(self.productos)
+            
+            if filename:
+                dialog.destroy()
+                messagebox.showinfo(
+                    "✅ Exportación Exitosa", 
+                    f"Inventario exportado exitosamente a:\n\n📝 {filename}\n\n"
+                    f"El archivo HTML incluye:\n"
+                    f"• Diseño profesional con colores corporativos\n"
+                    f"• Resumen de totales\n"
+                    f"• Compatible con navegadores web\n"
+                    f"• Se puede abrir en Word"
+                )
+                
+                # Preguntar si quiere abrir el archivo
+                if messagebox.askyesno("Abrir Archivo", "¿Deseas abrir el archivo HTML ahora?"):
+                    import webbrowser
+                    webbrowser.open(filename)
+            else:
+                messagebox.showerror("Error", "No se pudo exportar el inventario a HTML")
+                
+        except ImportError:
+            # Fallback a la función HTML básica
+            self.exportar_html(dialog)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar el inventario: {str(e)}")
+    
+    def exportar_json_pandas(self, dialog):
+        """Exportar inventario a JSON usando pandas"""
+        try:
+            from utils.exportar_pandas import ExportadorPandas
+            
+            exportador = ExportadorPandas()
+            filename = exportador.exportar_productos_json(self.productos)
+            
+            if filename:
+                dialog.destroy()
+                messagebox.showinfo(
+                    "✅ Exportación Exitosa", 
+                    f"Inventario exportado exitosamente a:\n\n📋 {filename}\n\n"
+                    f"El archivo JSON es útil para:\n"
+                    f"• Integración con otros sistemas\n"
+                    f"• Respaldos de datos\n"
+                    f"• Desarrollo de aplicaciones\n"
+                    f"• APIs y servicios web"
+                )
+                
+                # Preguntar si quiere abrir el archivo
+                if messagebox.askyesno("Abrir Archivo", "¿Deseas abrir el archivo JSON ahora?"):
+                    import os
+                    os.startfile(filename)  # Windows
+            else:
+                messagebox.showerror("Error", "No se pudo exportar el inventario a JSON")
+                
+        except ImportError:
+            messagebox.showerror(
+                "Dependencia Faltante", 
+                "Para exportar a JSON necesitas instalar pandas:\n\n"
+                "pip install pandas"
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar el inventario: {str(e)}")

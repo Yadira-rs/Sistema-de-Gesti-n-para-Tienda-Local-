@@ -17,19 +17,25 @@ class PerfilView(ctk.CTkFrame):
         
         # Obtener color según rol
         rol = self.user.get("rol", "Admin")
-        self.avatar_color = {
-            'Administrador': '#E91E63',
-            'Vendedor': '#9C27B0',
-            'Cajero': '#2196F3',
-            'Empleado': '#4CAF50'
-        }.get(rol, '#E91E63')
         
-        self.avatar_bg = {
-            'Administrador': '#FCE4EC',
-            'Vendedor': '#F3E5F5',
-            'Cajero': '#E3F2FD',
-            'Empleado': '#E8F5E9'
-        }.get(rol, '#FCE4EC')
+        # Lógica especial para Janet (siempre rosa)
+        if self.user.get("email", "").lower() == "janet.rb00@gmail.com":
+            self.avatar_color = '#E91E63'
+            self.avatar_bg = '#FCE4EC'
+        else:
+            self.avatar_color = {
+                'Administrador': '#E91E63',
+                'Vendedor': '#9C27B0',
+                'Cajero': '#2196F3',
+                'Empleado': '#E91E63'  # Cambiado de verde a rosa
+            }.get(rol, '#E91E63')
+            
+            self.avatar_bg = {
+                'Administrador': '#FCE4EC',
+                'Vendedor': '#F3E5F5',
+                'Cajero': '#E3F2FD',
+                'Empleado': '#FCE4EC'
+            }.get(rol, '#FCE4EC')
         
         # Tarjeta de información del usuario (horizontal)
         user_card = ctk.CTkFrame(main_container, fg_color=self.avatar_bg, corner_radius=30, height=200)
@@ -58,7 +64,7 @@ class PerfilView(ctk.CTkFrame):
             avatar_outer,
             text=inicial,
             font=("Segoe UI", 70, "bold"),
-            text_color="#66BB6A"  # Verde como en la imagen
+            text_color=self.avatar_color  # Color según rol (antes verde fijo)
         ).pack(expand=True)
         
         # Información del usuario a la derecha
@@ -266,22 +272,22 @@ class PerfilView(ctk.CTkFrame):
             border_width=0,
             command=self.editar_perfil
         )
-        edit_btn.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        edit_btn.pack(side="left", fill="x", expand=True)
         
-        # Botón Agregar usuario
-        add_btn = ctk.CTkButton(
-            row1,
-            text="➕  Agregar Usuario",
-            height=65,
-            corner_radius=18,
-            fg_color="#E8F5E9",
-            hover_color="#C8E6C9",
-            font=("Segoe UI", 15, "bold"),
-            text_color="#388E3C",
-            border_width=0,
-            command=self.agregar_perfil
-        )
-        add_btn.pack(side="left", fill="x", expand=True, padx=(10, 0))
+        # Botón Agregar usuario - DESHABILITADO
+        # add_btn = ctk.CTkButton(
+        #     row1,
+        #     text="➕  Agregar Usuario",
+        #     height=65,
+        #     corner_radius=18,
+        #     fg_color="#E8F5E9",
+        #     hover_color="#C8E6C9",
+        #     font=("Segoe UI", 15, "bold"),
+        #     text_color="#388E3C",
+        #     border_width=0,
+        #     command=self.agregar_perfil
+        # )
+        # add_btn.pack(side="left", fill="x", expand=True, padx=(10, 0))
         
         # Fila 2
         row2 = ctk.CTkFrame(grid_frame, fg_color="transparent")

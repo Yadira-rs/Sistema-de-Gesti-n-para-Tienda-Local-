@@ -71,25 +71,27 @@ def finalizar_venta(usuario_id=None, metodo="Efectivo", descuento_porcentaje=0):
     descuento_monto = subtotal * (descuento_porcentaje / 100)
     total = subtotal - descuento_monto
     
-    # Insertar venta con descuento y usuario
+    # Insertar venta (solo columnas que existen en la tabla)
     try:
         cur.execute(
-            "INSERT INTO ventas (id_cliente, id_usuario, subtotal, descuento_porcentaje, descuento_monto, total, metodo_pago) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
-            (None, usuario_id, subtotal, descuento_porcentaje, descuento_monto, total, metodo)
+            "INSERT INTO ventas (id_cliente, id_usuario, total, metodo_pago, descuento) VALUES (%s, %s, %s, %s, %s)", 
+            (None, usuario_id, total, metodo, descuento_monto)
         )
     except Exception:
-        # Si la columna id_usuario no existe aún, usar la versión anterior
+        # Si la columna id_usuario no existe, usar la versión sin ella
         cur.execute(
-            "INSERT INTO ventas (id_cliente, subtotal, descuento_porcentaje, descuento_monto, total, metodo_pago) VALUES (%s, %s, %s, %s, %s, %s)", 
-            (None, subtotal, descuento_porcentaje, descuento_monto, total, metodo)
+            "INSERT INTO ventas (id_cliente, total, metodo_pago, descuento) VALUES (%s, %s, %s, %s)", 
+            (None, total, metodo, descuento_monto)
         )
     id_venta = cur.lastrowid
     
     for item in carrito:
-        subtotal_item = float(item["precio"]) * int(item["cantidad"])
+        precio_unitario = float(item["precio"])
+        cantidad = int(item["cantidad"])
+        subtotal_item = precio_unitario * cantidad
         cur.execute(
-            "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, subtotal) VALUES (%s, %s, %s, %s)",
-            (id_venta, item["id_producto"], item["cantidad"], subtotal_item)
+            "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario, subtotal) VALUES (%s, %s, %s, %s, %s)",
+            (id_venta, item["id_producto"], cantidad, precio_unitario, subtotal_item)
         )
         cur.execute(
             "UPDATE productos SET stock = stock - %s WHERE id_producto=%s",
@@ -165,7 +167,11 @@ def exportar_ventas_csv(path, start_date=None, end_date=None, metodo=None):
 
 def listar_ultimas_ventas(limit=5):
     conn = crear_conexion(); cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id_venta, fecha, total FROM ventas ORDER BY fecha DESC LIMIT %s", (limit,))
+    try:
+        cur.execute("SELECT id_venta, fecha, total, metodo_pago, descuento FROM ventas ORDER BY fecha DESC LIMIT %s", (limit,))
+    except:
+        # Si no existe la columna metodo_pago o descuento, usar consulta básica
+        cur.execute("SELECT id_venta, fecha, total, 'Efectivo' as metodo_pago, 0 as descuento FROM ventas ORDER BY fecha DESC LIMIT %s", (limit,))
     rows = cur.fetchall(); conn.close(); return rows
 
 def ventas_hoy_total():
@@ -175,13 +181,17 @@ def ventas_hoy_total():
 
 def ingresos_mes_total():
     conn = crear_conexion(); cur = conn.cursor()
-    cur.execute("SELECT COALESCE(SUM(total),0) FROM ventas WHERE YEAR(fecha)=YEAR(CURDATE()) AND MONTH(fecha)=MONTH(CURDATE())")
+    cur.execute("SELECT COALESCE(SUM(total),0) FROM ventas WHERE DATE_FORMAT(fecha, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')")
     total = cur.fetchone()[0]; conn.close(); return float(total or 0)
 
 def ventas_diarias(dias=7):
     conn = crear_conexion(); cur = conn.cursor(dictionary=True)
     cur.execute("SELECT DATE(fecha) AS dia, COALESCE(SUM(total),0) AS total FROM ventas GROUP BY DATE(fecha) ORDER BY DATE(fecha) DESC LIMIT %s", (dias,))
     rows = cur.fetchall(); conn.close(); return list(reversed(rows))
+
+def obtener_ventas(limit=100):
+    """Obtener lista de ventas - alias para listar_ventas"""
+    return listar_ventas(limit=limit)
 
 def obtener_ticket(id_venta):
     conn = crear_conexion(); cur = conn.cursor(dictionary=True)
