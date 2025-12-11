@@ -153,7 +153,7 @@ La base de datos incluye tablas como:
 | Iris Yadira Santiago | Backend y Project manager  |
 | Danna Michell Robles | Frontend |
 | Lucía Medina | Frontend |
-| Cindy Alejandra Reyes | Backend |
+| Cindy Alejandra Reyes | Backend y Tester |
 | Owen Asaf Benítez | Frontend |
 
 ---
